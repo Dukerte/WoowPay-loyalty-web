@@ -1,7 +1,8 @@
 export type UserType = 'merchant' | 'client';
 
 export interface Prize {
-  label: string;
+  label:      string;   // full label shown in result modal
+  shortLabel: string;   // short label shown on the wheel
   emoji: string;
   desc:  string;
   color: string;

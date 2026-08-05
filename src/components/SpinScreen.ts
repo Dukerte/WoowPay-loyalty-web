@@ -42,8 +42,9 @@ export function SpinScreen(
       <div class="ss-header-top">
         <img src="/logo-white.png" class="ss-logo" alt="WoowPay" />
         <div class="ss-spins-remaining">
-          <span class="sr-label">Эргэлт</span>
+          <span class="sr-label">Үлдсэн эргэлт</span>
           <div class="sr-dots">${dots}</div>
+          <span class="sr-count">${spinsLeft}/${totalSpins}</span>
         </div>
       </div>
       <div class="ss-header-divider"></div>
@@ -77,7 +78,9 @@ export function SpinScreen(
   const spinLabel = document.createElement('p');
   spinLabel.className = 'ss-spin-label';
   const updateLabel = () => {
-    spinLabel.textContent = spinsLeft > 0 ? `${spinsLeft} эргэлт үлдсэн` : 'Эргэлт дууссан';
+    spinLabel.innerHTML = spinsLeft > 0
+      ? `<span class="ss-spin-count">${spinsLeft}</span> эргэлт үлдсэн`
+      : 'Эргэлт дууссан';
   };
   updateLabel();
 
