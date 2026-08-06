@@ -208,7 +208,7 @@ html, body {
 
 @media (prefers-reduced-motion: reduce) {
   .bg-orb, .bg-spotlight, .bg-particles span, .ce-deco-ring, .ce-deco-badge,
-  .ce-box-glow, .ce-box-img, .ce-sparkle, .ce-btn, .ss-spin-btn, .ce-owl-bubble {
+  .ce-box-backdrop, .ce-box-glow, .ce-sparkle, .ce-btn, .ss-spin-btn, .ce-owl-bubble {
     animation: none !important;
   }
 }
@@ -282,14 +282,15 @@ html, body {
   z-index: 1;
 }
 /* Box backdrop — big, real gift-box render sitting BEHIND the card
-   (z-index 0, card is 1), centered above it so the card visually
-   looks like it's emerging out of the open box. Because it's behind
-   the card by construction, it can never collide with card content
-   no matter how big it is — only the portion poking above the card's
-   top edge is ever visible over the background. */
+   (z-index 0, card is 1). Two copies of the same image: one anchored
+   by `top` so only ITS top edge (the lid/bow/opening) peeks above the
+   card, one anchored by `bottom` so only ITS bottom edge (the base)
+   peeks below — together they read as a single box the card sits
+   inside, top and bottom both visible, middle hidden behind the card.
+   Because both are behind the card by construction, neither can ever
+   collide with card content no matter the size. */
 .ce-box-backdrop {
   position: absolute;
-  top: -90px;
   left: 50%;
   width: 300px;
   transform: translateX(-50%);
@@ -297,6 +298,8 @@ html, body {
   pointer-events: none;
   animation: boxBackdropFloat 5s ease-in-out infinite;
 }
+.ce-box-backdrop-top    { top: -90px; }
+.ce-box-backdrop-bottom { bottom: -84px; animation-delay: -2.5s; }
 .ce-box-glow {
   position: absolute;
   left: 50%;
@@ -367,7 +370,9 @@ html, body {
   .ce-deco-badge { width: 36px; height: 36px; font-size: 1rem; border-radius: 11px; }
   .ce-deco-coin { top: -40px; left: 10px; bottom: auto; }
   .ce-sparkle.s2 { right: 60px; }
-  .ce-box-backdrop { width: 200px; top: -58px; }
+  .ce-box-backdrop { width: 200px; }
+  .ce-box-backdrop-top    { top: -58px; }
+  .ce-box-backdrop-bottom { bottom: -54px; }
   .ce-box-glow { width: 230px; height: 230px; }
 }
 
@@ -477,6 +482,11 @@ html, body {
   transition: transform .4s cubic-bezier(.34,1.56,.64,1);
 }
 .ce-card:hover .ce-owl { transform: translateY(-6px) rotate(2deg); }
+/* Flip the mascot so its pointing gesture reads toward the other
+   side — mirroring the image also mirrors the small "WOOW" print on
+   its shirt, but at this display size that's not legible either way. */
+.ce-owl-flip { transform: scaleX(-1); }
+.ce-card:hover .ce-owl-flip { transform: scaleX(-1) translateY(-6px) rotate(-2deg); }
 
 .ce-form { flex: 1; min-width: 0; }
 .ce-step { animation: fadeUp .25s cubic-bezier(.22,1,.36,1) both; }

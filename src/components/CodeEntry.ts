@@ -15,10 +15,15 @@ export function CodeEntry(
       <img src="/logo-white.png" class="ce-logo" alt="WoowPay" />
       <div class="ce-card-wrap">
         <!-- Sits BEHIND the card (z-index below it) by construction, so
-             it can never collide with card content — the card visually
-             looks like it's emerging out of the open gift box. -->
-        <div class="ce-box-backdrop" aria-hidden="true">
+             it can never collide with card content. Two copies of the
+             same box art: one peeking above the card's top edge (the
+             lid/opening), one peeking below its bottom edge (the base) —
+             together they read as one box the card is coming out of. -->
+        <div class="ce-box-backdrop ce-box-backdrop-top" aria-hidden="true">
           <div class="ce-box-glow"></div>
+          <img src="/gift-box-open.webp" class="ce-box-img" alt="" />
+        </div>
+        <div class="ce-box-backdrop ce-box-backdrop-bottom" aria-hidden="true">
           <img src="/gift-box-open.webp" class="ce-box-img" alt="" />
         </div>
         <div class="ce-deco" aria-hidden="true">
@@ -39,7 +44,7 @@ export function CodeEntry(
               <p class="ce-owl-bubble-cta">Танд амжилт хүсье!</p>
               <span class="ce-owl-bubble-tail"></span>
             </div>
-            <img src="/owl-pointing.webp" class="ce-owl" width="230" height="180" alt="" aria-hidden="true" />
+            <img src="/owl-pointing.webp" class="ce-owl ce-owl-flip" width="230" height="180" alt="" aria-hidden="true" />
           </div>
           <div class="ce-form ce-step">
             <p class="ce-eyebrow">WOOW PAY · УРАМШУУЛАЛ</p>
