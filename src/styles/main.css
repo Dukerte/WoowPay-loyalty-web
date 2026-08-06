@@ -109,6 +109,21 @@ html, body {
   mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, black 0%, transparent 75%);
 }
 
+/* Brand watermark — the Woow Pay infinity-knot mark from the logo,
+   tiled faintly across the scene instead of a generic dot texture.
+   Kept extremely low-opacity so it reads as a subtle brand cue, not
+   decoration competing with the card. */
+.bg-mark {
+  position: absolute;
+  inset: -40px;
+  background-image: url('/woow-mark.webp');
+  background-repeat: repeat;
+  background-size: 220px auto;
+  background-position: 30px 20px;
+  opacity: .045;
+  mask-image: radial-gradient(ellipse 85% 65% at 50% 25%, black 0%, transparent 78%);
+}
+
 .bg-orb {
   position: absolute;
   border-radius: 50%;
@@ -207,7 +222,12 @@ html, body {
 .ce-deco {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  /* Must outrank .ce-card (z-index 1 below) so the gift box, ring and
+     sparkles aren't painted over by the card's opaque white background
+     where they overlap it — .ce-deco comes first in the DOM, and without
+     an explicit higher z-index the later, opaque .ce-card silently hides
+     anything from this layer sitting behind its box. */
+  z-index: 2;
   pointer-events: none;
   overflow: visible;
 }
@@ -349,6 +369,7 @@ html, body {
   box-shadow: var(--shadow-card);
   overflow: hidden;
   position: relative;
+  z-index: 1;
   backdrop-filter: blur(20px);
 }
 
@@ -366,12 +387,54 @@ html, body {
   align-items: flex-end;
 }
 
+/* Owl column — mascot + its speech bubble stacked above it, filling
+   the empty space that used to sit above the owl's head. */
+.ce-owl-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-shrink: 0;
+  width: 188px;
+}
+
+.ce-owl-bubble {
+  position: relative;
+  background: var(--ice-blue);
+  border: 1px solid rgba(51,168,221,.2);
+  border-radius: 16px;
+  padding: 12px 14px 13px;
+  margin: 4px 0 10px 2px;
+  box-shadow: 0 6px 18px rgba(6,43,102,.08);
+  animation: fadeUp .5s cubic-bezier(.22,1,.36,1) .15s both;
+}
+.ce-owl-bubble p {
+  font-size: .74rem;
+  line-height: 1.45;
+  color: var(--text-navy);
+  font-weight: 500;
+}
+.ce-owl-bubble-cta {
+  margin-top: 6px;
+  font-weight: 800;
+  color: var(--cyan-dark);
+}
+.ce-owl-bubble-tail {
+  position: absolute;
+  bottom: -8px;
+  left: 28px;
+  width: 16px;
+  height: 16px;
+  background: var(--ice-blue);
+  border-right: 1px solid rgba(51,168,221,.2);
+  border-bottom: 1px solid rgba(51,168,221,.2);
+  transform: rotate(45deg);
+  border-radius: 0 0 3px 0;
+}
+
 /* Owl — mix-blend-mode:multiply removes white bg on white card */
 .ce-owl {
   width: 185px;
   height: auto; /* prevent the width/height HTML attrs (added for CLS) from stretching it */
-  flex-shrink: 0;
-  align-self: flex-end;
   margin-right: -4px;
   margin-bottom: -32px;
   position: relative;
@@ -1090,6 +1153,9 @@ canvas.spin-wheel {
 /* ─── Responsive ─────────────────────────────────────────── */
 @media (max-width: 420px) {
   .ce-owl       { width: 130px; }
+  .ce-owl-col   { width: 138px; }
+  .ce-owl-bubble { padding: 10px 11px 11px; }
+  .ce-owl-bubble p { font-size: .68rem; line-height: 1.4; }
   .ce-card-body { padding: 22px 22px 28px; }
   canvas.spin-wheel { width: 320px !important; height: 320px !important; }
   .ss-spin-btn  { padding: 16px 44px; font-size: 1rem; }

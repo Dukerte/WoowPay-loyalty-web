@@ -30,11 +30,17 @@ export function CodeEntry(
         <div class="ce-card">
         <div class="ce-card-bar"></div>
         <div class="ce-card-body">
-          <img src="/owl-pointing.webp" class="ce-owl" width="230" height="180" alt="" aria-hidden="true" />
+          <div class="ce-owl-col">
+            <div class="ce-owl-bubble">
+              <p>Та өөрийн эрхийн кодоо ашиглан хүрдээ эргүүлээд онцгой урамшууллуудын эзэн болоорой.</p>
+              <p class="ce-owl-bubble-cta">Танд амжилт хүсье. 🎁</p>
+              <span class="ce-owl-bubble-tail"></span>
+            </div>
+            <img src="/owl-pointing.webp" class="ce-owl" width="230" height="180" alt="" aria-hidden="true" />
+          </div>
           <div class="ce-form ce-step">
             <p class="ce-eyebrow">WOOW PAY · УРАМШУУЛАЛ</p>
             <h1 class="ce-title">Азаа туршаарай!</h1>
-            <p class="ce-context">Woow Pay-н харилцагч, мерчант танд зориулсан албан ёсны хүрдэн урамшуулал.</p>
             <p class="ce-sub">Эрхийн кодоо оруулаад<br/>хүрдийг эргүүлнэ үү 🎰</p>
 
             <div class="ce-input-wrap">
