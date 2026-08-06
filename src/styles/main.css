@@ -190,11 +190,33 @@ html, body {
   100% { transform: translateY(-100vh) translateX(24px); opacity: 0; }
 }
 
-/* Gold sparkle stars — a few scattered, glowing accents for the
-   celebratory feel. Deliberately sparse rather than a dense confetti
-   field: the brand treats yellow as a one-touch accent, so this stays
-   as a handful of soft, glowing points rather than covering the
-   scene in gold. */
+/* Real gold-glitter render (Goldsparkling.eps from the asset library),
+   mirrored/rotated into all four corners so the sparkle reaches every
+   edge of the screen. mix-blend-mode: screen makes the glitter add
+   light onto the navy — reads as glow, not a pasted texture. */
+.bg-goldsparkle {
+  position: absolute;
+  width: 640px;
+  height: 448px;
+  background-image: url('/gold-sparkle.webp');
+  background-size: contain;
+  background-repeat: no-repeat;
+  mix-blend-mode: screen;
+  opacity: .9;
+  animation: goldDriftPulse 8s ease-in-out infinite;
+}
+.corner-bl { bottom: -60px; left: -60px; }
+.corner-br { bottom: -60px; right: -60px; transform: scaleX(-1); }
+.corner-tl { top: -60px; left: -60px; transform: scaleY(-1); }
+.corner-tr { top: -60px; right: -60px; transform: scale(-1, -1); }
+.corner-tr, .corner-br { animation-delay: 2.5s; }
+@keyframes goldDriftPulse {
+  0%, 100% { opacity: .75; }
+  50%      { opacity: 1;   }
+}
+
+/* A handful of small crisp CSS stars close to the card, on top of the
+   soft glitter renders above, for a few sharp glints near the action. */
 .bg-gold span {
   position: absolute;
   width: 16px;
@@ -216,7 +238,7 @@ html, body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bg-orb, .bg-spotlight, .bg-particles span, .bg-gold span, .ce-deco-badge,
+  .bg-orb, .bg-spotlight, .bg-particles span, .bg-gold span, .bg-goldsparkle, .ce-deco-badge,
   .ce-box-backdrop, .ce-box-glow, .ce-card-glow, .ce-sparkle, .ce-btn,
   .ss-spin-btn, .ce-owl-bubble {
     animation: none !important;
@@ -287,11 +309,11 @@ html, body {
    content no matter the size.
    Top piece: the closed box (lid + bow) peeking above the card, as if
    it's the cover that was lifted off.
-   Bottom piece: the SAME rim crop used up top (the open box's top
-   edge), cropped via a fixed-height overflow:hidden window and
-   relocated just below the card — the box's own bottom is a fading
-   reflection, not a solid "base" shape, so reusing the rim reads far
-   better than showing that fade. */
+   Bottom piece: the same open-box render, cropped to show the whole
+   solid box but cut off before its own reflection — that reflection
+   is a soft, uneven fade-to-transparent that reads as a smeared/
+   "broken" shadow rather than a clean floor reflection, so it's
+   excluded entirely instead of trying to soften it further. */
 .ce-box-backdrop {
   position: absolute;
   left: 50%;
@@ -311,11 +333,16 @@ html, body {
              boxBackdropFloat 5s ease-in-out infinite .6s;
 }
 .ce-box-backdrop-bottom {
-  /* Full box, uncropped — no fixed height/overflow/mask. Tucked
-     slightly under the card for a connected look; the rest (the
-     whole box body, down into its reflection) is fully visible below. */
+  /* Box is ~334px tall at this width; the solid box (no reflection)
+     runs to about 303px, so the window stops right there — the whole
+     box shows, none of the fading reflection does. Tucked slightly
+     under the card for a connected look. */
   top: 100%;
   margin-top: -16px;
+  height: 303px;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, black 0%, black 96%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 96%, transparent 100%);
   animation: boxSettle .6s cubic-bezier(.34,1.56,.64,1) .15s both,
              boxBackdropFloat 5.6s ease-in-out infinite .75s;
 }
@@ -377,12 +404,17 @@ html, body {
 }
 
 @media (max-width: 560px) {
+  .bg-goldsparkle { width: 340px; height: 238px; }
+  .corner-bl, .corner-tl { left: -40px; }
+  .corner-br, .corner-tr { right: -40px; }
+  .corner-tl, .corner-tr { top: -30px; }
+  .corner-bl, .corner-br { bottom: -30px; }
   .ce-logo { margin-bottom: 132px; }
   .ce-deco-badge { width: 36px; height: 36px; font-size: 1rem; border-radius: 11px; }
   .ce-sparkle.s2 { right: 60px; }
   .ce-box-backdrop { width: 200px; }
   .ce-box-backdrop-top    { top: -117px; }
-  .ce-box-backdrop-bottom { top: 100%; margin-top: -10px; }
+  .ce-box-backdrop-bottom { top: 100%; margin-top: -10px; height: 202px; }
   .ce-box-glow { width: 230px; height: 230px; }
 }
 
