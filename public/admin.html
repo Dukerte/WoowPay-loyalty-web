@@ -508,11 +508,11 @@ window.addEventListener('DOMContentLoaded', () => {
 // ══════════════════════════════════════════════════════════════
 //  SUPABASE CLIENT
 // ══════════════════════════════════════════════════════════════
-let supabase = null;
+let sbClient = null;
 
 function initSupabase(url, key) {
   try {
-    supabase = window.supabase.createClient(url, key);
+    sbClient = window.supabase.createClient(url, key);
   } catch(e) {
     console.error('Supabase init error', e);
   }
@@ -534,12 +534,12 @@ async function login() {
     errEl.textContent = 'Supabase URL болон Anon Key тохируулна уу (доорх ⚙️)';
     return;
   }
-  if (!supabase) initSupabase(cfg.url, cfg.key);
+  if (!sbClient) initSupabase(cfg.url, cfg.key);
 
   btn.disabled = true;
   btn.textContent = 'Нэвтэрч байна...';
   try {
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    const { error } = await sbClient.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
     showApp(email, cfg);
   } catch(e) {
@@ -551,7 +551,7 @@ async function login() {
 }
 
 async function logout() {
-  if (supabase) await supabase.auth.signOut();
+  if (sbClient) await sbClient.auth.signOut();
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-screen').style.display = 'flex';
 }
@@ -585,8 +585,8 @@ let currentPage  = 1;
 const PAGE_SIZE  = 20;
 
 async function loadClients() {
-  if (!supabase) return;
-  const { data, error } = await supabase
+  if (!sbClient) return;
+  const { data, error } = await sbClient
     .from('clients')
     .select('*')
     .order('created_at', { ascending: false });
@@ -739,10 +739,10 @@ async function saveClient() {
     const payload = { name, phone, code, user_type: type, spins, enabled, notes };
     let error;
     if (editingId) {
-      ({ error } = await supabase.from('clients').update(payload).eq('id', editingId));
+      ({ error } = await sbClient.from('clients').update(payload).eq('id', editingId));
     } else {
       payload.spins_used = 0;
-      ({ error } = await supabase.from('clients').insert(payload));
+      ({ error } = await sbClient.from('clients').insert(payload));
     }
     if (error) throw error;
     showToast(editingId ? 'Клиент шинэчлэгдлээ ✓' : 'Клиент нэмэгдлээ ✓', 'success');
@@ -757,7 +757,7 @@ async function saveClient() {
 }
 
 async function toggleEnabled(id, current) {
-  const { error } = await supabase
+  const { error } = await sbClient
     .from('clients').update({ enabled: !current }).eq('id', id);
   if (error) { showToast('Алдаа гарлаа', 'error'); return; }
   showToast(!current ? 'Идэвхжүүлсэн ✓' : 'Хаасан ✓', 'success');
@@ -769,7 +769,7 @@ async function addSpins(id, name) {
   if (!n || isNaN(n) || n <= 0) return;
   const client = allClients.find(x => x.id === id);
   if (!client) return;
-  const { error } = await supabase
+  const { error } = await sbClient
     .from('clients').update({ spins: client.spins + n }).eq('id', id);
   if (error) { showToast('Алдаа гарлаа', 'error'); return; }
   showToast(`${n} эргэлт нэмэгдлээ ✓`, 'success');
@@ -778,7 +778,7 @@ async function addSpins(id, name) {
 
 async function deleteClient(id, name) {
   if (!confirm(`"${name}" клиентийг устгах уу?\nЭнэ үйлдлийг буцаах боломжгүй.`)) return;
-  const { error } = await supabase.from('clients').delete().eq('id', id);
+  const { error } = await sbClient.from('clients').delete().eq('id', id);
   if (error) { showToast('Устгахад алдаа гарлаа', 'error'); return; }
   showToast('Устгасан ✓', 'success');
   loadClients();
@@ -825,7 +825,7 @@ function importCSV(event) {
       });
     }
     if (!inserts.length) { showToast('Хүчинтэй мөр олдсонгүй', 'error'); return; }
-    const { error } = await supabase.from('clients').upsert(inserts, { onConflict: 'code' });
+    const { error } = await sbClient.from('clients').upsert(inserts, { onConflict: 'code' });
     if (error) { showToast('Импортод алдаа: ' + error.message, 'error'); return; }
     showToast(`${inserts.length} клиент импортлогдлоо ✓`, 'success');
     loadClients();
