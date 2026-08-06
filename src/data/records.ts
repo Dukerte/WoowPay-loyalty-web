@@ -26,11 +26,16 @@ export const CODE_RECORDS: Record<string, CodeRecord> = {
  * Verify that the entered phone matches the record for this code.
  * Returns true if no record exists, or if the record has no phone set.
  */
-export function verifyPhone(code: string, phone: string): boolean {
-  const record = CODE_RECORDS[code];
-  if (!record || !record.phone) return true;   // no record / no phone constraint → allow
+/**
+ * Verify that the entered phone matches the record for this code.
+ * Accepts an optional overridePhone from a Supabase lookup.
+ * Returns true if no record exists, or if the record has no phone set.
+ */
+export function verifyPhone(code: string, phone: string, overridePhone?: string): boolean {
+  const registeredPhone = overridePhone ?? CODE_RECORDS[code]?.phone ?? '';
+  if (!registeredPhone) return true;   // no phone constraint → allow
   const clean = phone.replace(/\D/g, '');
-  return clean === record.phone || clean === '976' + record.phone;
+  return clean === registeredPhone || clean === '976' + registeredPhone;
 }
 
 /**

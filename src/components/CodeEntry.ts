@@ -1,5 +1,5 @@
 import { formatCodeInput, validateCode } from '../data/codeValidator';
-import { verifyPhone } from '../data/records';
+import { validateCodeRemote, verifyPhoneRemote } from '../data/clientService';
 import type { UserType } from '../types';
 
 export function CodeEntry(
@@ -48,16 +48,37 @@ export function CodeEntry(
     const btn   = el.querySelector<HTMLButtonElement>('#code-btn')!;
     const errEl = el.querySelector<HTMLElement>('#code-error')!;
 
-    const showErr  = (m: string) => { errEl.textContent = m; input.classList.add('invalid'); };
+    const showErr  = (m: string) => { errEl.textContent = m; input.classList.add('invalid'); btn.disabled = false; btn.textContent = 'Шалгах →'; };
     const clearErr = () => { errEl.textContent = ''; input.classList.remove('invalid'); };
 
     input.addEventListener('input', () => { input.value = formatCodeInput(input.value); clearErr(); });
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') btn.click(); });
-    btn.addEventListener('click', () => {
+
+    btn.addEventListener('click', async () => {
       clearErr();
-      const r = validateCode(input.value);
-      if (!r.valid) { showErr(r.error!); return; }
-      renderStep2(input.value.trim().toUpperCase(), r.userType!, r.spins!);
+      // Quick local format check first
+      const localCheck = validateCode(input.value);
+      if (!localCheck.valid) { showErr(localCheck.error!); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Шалгаж байна...';
+
+      try {
+        const result = await validateCodeRemote(input.value);
+        if (!result.valid) { showErr(result.error!); return; }
+        renderStep2(
+          input.value.trim().toUpperCase(),
+          result.userType!,
+          result.spins!,
+        );
+      } catch {
+        // Network error → fall back to local validation
+        renderStep2(
+          input.value.trim().toUpperCase(),
+          localCheck.userType!,
+          localCheck.spins!,
+        );
+      }
     });
     input.focus();
   }
@@ -94,7 +115,7 @@ export function CodeEntry(
     const phoneBtn   = el.querySelector<HTMLButtonElement>('#phone-btn')!;
     const phoneErr   = el.querySelector<HTMLElement>('#phone-error')!;
 
-    const showErr  = (m: string) => { phoneErr.textContent = m; phoneInput.classList.add('invalid'); };
+    const showErr  = (m: string) => { phoneErr.textContent = m; phoneInput.classList.add('invalid'); phoneBtn.disabled = false; phoneBtn.textContent = 'Баталгаажуулах →'; };
     const clearErr = () => { phoneErr.textContent = ''; phoneInput.classList.remove('invalid'); };
 
     phoneInput.addEventListener('input', () => {
@@ -104,16 +125,26 @@ export function CodeEntry(
     phoneInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') phoneBtn.click(); });
     el.querySelector<HTMLButtonElement>('#back-btn')!.addEventListener('click', renderStep1);
 
-    phoneBtn.addEventListener('click', () => {
+    phoneBtn.addEventListener('click', async () => {
       clearErr();
       const phone = phoneInput.value.trim();
       if (!phone) { showErr('Утасны дугаараа оруулна уу'); return; }
       if (phone.length < 8) { showErr('Утасны дугаар 8 оронтой байх ёстой'); return; }
-      if (!verifyPhone(code, phone)) {
-        showErr('Утасны дугаар таарахгүй байна. Бүртгэлтэй дугаараа оруулна уу');
-        return;
+
+      phoneBtn.disabled = true;
+      phoneBtn.textContent = 'Шалгаж байна...';
+
+      try {
+        const ok = await verifyPhoneRemote(code, phone);
+        if (!ok) {
+          showErr('Утасны дугаар таарахгүй байна. Бүртгэлтэй дугаараа оруулна уу');
+          return;
+        }
+        onValid(userType, spins, code, phone);
+      } catch {
+        // Network error → skip phone check
+        onValid(userType, spins, code, phone);
       }
-      onValid(userType, spins, code, phone);
     });
     phoneInput.focus();
   }

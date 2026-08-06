@@ -2,6 +2,7 @@ import type { UserType } from '../types';
 import { PRIZES } from '../data/prizes';
 import { SpinWheel } from './SpinWheel';
 import { ResultModal } from './ResultModal';
+import { recordSpin } from '../data/clientService';
 
 export function SpinScreen(
   userType: UserType,
@@ -91,6 +92,7 @@ export function SpinScreen(
     onResult(prize) {
       spinsUsed++;
       spinsLeft--;
+      recordSpin(code); // fire-and-forget Supabase update
       renderHeader();
       updateLabel();
       if (spinsLeft <= 0) spinBtn.disabled = true;

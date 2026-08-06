@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WoowPay Loyalty — Admin Panel</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  /* ── Reset & Base ─────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy:   #0a1628;
+    --navy2:  #0f2040;
+    --navy3:  #162a52;
+    --cyan:   #29bde0;
+    --cyan2:  #0ea5c9;
+    --green:  #10b981;
+    --amber:  #f59e0b;
+    --red:    #ef4444;
+    --text:   #e2e8f0;
+    --muted:  #94a3b8;
+    --border: rgba(255,255,255,.10);
+    --card:   rgba(255,255,255,.05);
+    --radius: 12px;
+    --font:   'Inter', system-ui, sans-serif;
+  }
+  body {
+    font-family: var(--font);
+    background: var(--navy);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Login screen ─────────────────────────────────────────── */
+  #login-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+    background: radial-gradient(ellipse at 60% 20%, #1e3a8a22 0%, transparent 60%),
+                radial-gradient(ellipse at 20% 80%, #29bde022 0%, transparent 50%), var(--navy);
+  }
+  .login-card {
+    background: var(--navy2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+  }
+  .login-logo { width: 160px; margin-bottom: 8px; }
+  .login-title { font-size: 1.25rem; font-weight: 700; color: var(--cyan); margin-bottom: 4px; }
+  .login-sub   { font-size: 0.82rem; color: var(--muted); margin-bottom: 32px; }
+  .login-field { margin-bottom: 16px; text-align: left; }
+  .login-field label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+  .login-field input {
+    width: 100%; padding: 12px 14px;
+    background: rgba(255,255,255,.07); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-size: 0.95rem; outline: none;
+    transition: border .2s;
+  }
+  .login-field input:focus { border-color: var(--cyan); }
+  .btn-primary {
+    width: 100%; padding: 13px; background: var(--cyan);
+    color: #000; font-weight: 700; font-size: 0.95rem;
+    border: none; border-radius: 10px; cursor: pointer;
+    transition: background .2s, opacity .2s;
+  }
+  .btn-primary:hover { background: var(--cyan2); }
+  .btn-primary:disabled { opacity: .5; cursor: default; }
+  .login-err { color: var(--red); font-size: 0.82rem; margin-top: 12px; min-height: 18px; }
+
+  /* ── App layout ───────────────────────────────────────────── */
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+  #app.visible { display: flex; }
+
+  /* Top bar */
+  .topbar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 24px;
+    background: var(--navy2);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-logo { height: 32px; }
+  .topbar-title { font-size: 0.9rem; font-weight: 600; color: var(--cyan); flex: 1; }
+  .topbar-user  { font-size: 0.78rem; color: var(--muted); }
+  .btn-logout {
+    padding: 7px 14px; background: transparent;
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--muted); font-size: 0.78rem; cursor: pointer;
+    transition: border-color .2s, color .2s;
+  }
+  .btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+  /* Stats row */
+  .stats-row {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    padding: 20px 24px 0;
+  }
+  .stat-card {
+    flex: 1; min-width: 140px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 20px;
+  }
+  .stat-label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .stat-val   { font-size: 1.6rem; font-weight: 800; color: var(--cyan); line-height: 1.1; margin-top: 4px; }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 20px 24px 12px;
+  }
+  .toolbar-search {
+    flex: 1; min-width: 180px; max-width: 320px;
+    padding: 9px 14px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 9px;
+    color: var(--text); font-size: 0.88rem; outline: none;
+    transition: border .2s;
+  }
+  .toolbar-search:focus { border-color: var(--cyan); }
+  .btn-sm {
+    padding: 9px 16px; border-radius: 9px; font-size: 0.82rem;
+    font-weight: 600; cursor: pointer; border: 1px solid var(--border);
+    transition: background .2s, border-color .2s;
+  }
+  .btn-add    { background: var(--cyan); color: #000; border-color: var(--cyan); }
+  .btn-add:hover { background: var(--cyan2); }
+  .btn-import { background: var(--card); color: var(--text); }
+  .btn-import:hover { border-color: var(--cyan); }
+  .btn-export { background: var(--card); color: var(--text); }
+  .btn-export:hover { border-color: var(--green); }
+  .filter-sel {
+    padding: 9px 14px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 9px;
+    color: var(--text); font-size: 0.82rem; outline: none; cursor: pointer;
+  }
+
+  /* Table */
+  .table-wrap { padding: 0 24px 24px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  thead th {
+    text-align: left; padding: 10px 12px;
+    color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: .06em;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+  tbody tr:hover { background: var(--card); }
+  tbody td { padding: 11px 12px; color: var(--text); }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 99px;
+    font-size: 0.72rem; font-weight: 700;
+  }
+  .badge-merchant { background: rgba(245,158,11,.18); color: var(--amber); }
+  .badge-client   { background: rgba(41,189,224,.18); color: var(--cyan); }
+  .badge-on  { background: rgba(16,185,129,.18); color: var(--green); }
+  .badge-off { background: rgba(239,68,68,.15);  color: var(--red); }
+  .spins-bar {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .spins-track {
+    flex: 1; max-width: 80px; height: 5px;
+    background: rgba(255,255,255,.1); border-radius: 99px; overflow: hidden;
+  }
+  .spins-fill { height: 100%; background: var(--cyan); border-radius: 99px; }
+  .actions { display: flex; gap: 6px; }
+  .btn-icon {
+    width: 30px; height: 30px; border-radius: 7px;
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text); cursor: pointer; font-size: 0.82rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s, border-color .15s;
+  }
+  .btn-icon:hover { background: rgba(255,255,255,.1); }
+  .btn-icon.danger:hover { border-color: var(--red); color: var(--red); }
+  .btn-icon.success:hover { border-color: var(--green); color: var(--green); }
+  .empty-row td { text-align: center; color: var(--muted); padding: 48px; }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+    z-index: 200; align-items: center; justify-content: center; padding: 24px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--navy2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 32px; width: 100%; max-width: 480px;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 24px; }
+  .form-row { margin-bottom: 16px; }
+  .form-row label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; }
+  .form-row input, .form-row select, .form-row textarea {
+    width: 100%; padding: 11px 13px;
+    background: rgba(255,255,255,.07); border: 1px solid var(--border);
+    border-radius: 9px; color: var(--text); font-size: 0.9rem; outline: none;
+    transition: border .2s; font-family: var(--font);
+  }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--cyan); }
+  .form-row select option { background: var(--navy2); }
+  .form-row textarea { resize: vertical; min-height: 70px; }
+  .form-row .hint { font-size: 0.72rem; color: var(--muted); margin-top: 5px; }
+  .code-gen-row { display: flex; gap: 8px; }
+  .code-gen-row input { flex: 1; }
+  .btn-gen {
+    padding: 11px 14px; background: var(--navy3);
+    border: 1px solid var(--border); border-radius: 9px;
+    color: var(--cyan); font-size: 0.8rem; cursor: pointer; white-space: nowrap;
+    transition: background .2s;
+  }
+  .btn-gen:hover { background: rgba(41,189,224,.15); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 24px; justify-content: flex-end; }
+  .btn-cancel {
+    padding: 10px 20px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 9px;
+    color: var(--muted); cursor: pointer; font-size: 0.88rem;
+  }
+  .btn-cancel:hover { border-color: var(--muted); color: var(--text); }
+  .btn-save {
+    padding: 10px 24px; background: var(--cyan);
+    border: none; border-radius: 9px;
+    color: #000; font-weight: 700; cursor: pointer; font-size: 0.88rem;
+    transition: background .2s; opacity: 1;
+  }
+  .btn-save:hover { background: var(--cyan2); }
+  .btn-save:disabled { opacity: .5; cursor: default; }
+  .modal-err { color: var(--red); font-size: 0.8rem; margin-top: 8px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    padding: 12px 20px; border-radius: 10px;
+    font-size: 0.88rem; font-weight: 600; z-index: 999;
+    transform: translateY(80px); opacity: 0;
+    transition: transform .3s, opacity .3s;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: var(--green); color: #fff; }
+  .toast.error   { background: var(--red);   color: #fff; }
+
+  /* Config display */
+  .config-box {
+    background: rgba(0,0,0,.3); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px; font-size: 0.82rem;
+    color: var(--muted); margin: 0 24px 20px;
+    display: none;
+  }
+  .config-box.show { display: block; }
+  .config-box strong { color: var(--cyan); display: block; margin-bottom: 8px; }
+  .config-box code { display: block; margin: 4px 0; word-break: break-all; }
+
+  /* Pagination */
+  .pagination {
+    display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+    padding: 0 24px 24px; font-size: 0.82rem; color: var(--muted);
+  }
+  .page-btn {
+    padding: 5px 12px; background: var(--card);
+    border: 1px solid var(--border); border-radius: 7px;
+    color: var(--text); cursor: pointer; font-size: 0.8rem;
+  }
+  .page-btn:disabled { opacity: .4; cursor: default; }
+  .page-btn:hover:not(:disabled) { border-color: var(--cyan); }
+
+  @media (max-width: 600px) {
+    .topbar { padding: 12px 16px; }
+    .stats-row, .toolbar, .table-wrap, .config-box, .pagination { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ════════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <img src="https://loyalty.woowpay.mn/logo-white.png" class="login-logo" alt="WoowPay" onerror="this.style.display='none'" />
+    <div class="login-title">Loyalty Admin Panel</div>
+    <div class="login-sub">WoowPay хяналтын самбар</div>
+    <div class="login-field">
+      <label>Имэйл</label>
+      <input type="email" id="l-email" placeholder="admin@woowpay.mn" autocomplete="username" />
+    </div>
+    <div class="login-field">
+      <label>Нууц үг</label>
+      <input type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <button class="btn-primary" id="l-btn">Нэвтрэх</button>
+    <div class="login-err" id="l-err"></div>
+
+    <!-- First-time setup hint -->
+    <details style="margin-top:24px;text-align:left;">
+      <summary style="font-size:.78rem;color:var(--muted);cursor:pointer;">⚙️ Тохиргоо / Setup</summary>
+      <div style="margin-top:12px;font-size:.78rem;color:var(--muted);line-height:1.6;">
+        <p style="margin-bottom:8px;">Supabase тохиргоо хийгээгүй бол доорхи мэдээллийг оруулна уу:</p>
+        <div style="margin-bottom:8px;">
+          <label style="display:block;margin-bottom:4px;color:var(--cyan)">Supabase URL</label>
+          <input type="text" id="s-url" placeholder="https://xxxx.supabase.co"
+            style="width:100%;padding:9px;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.82rem;outline:none;" />
+        </div>
+        <div style="margin-bottom:8px;">
+          <label style="display:block;margin-bottom:4px;color:var(--cyan)">Anon Key</label>
+          <input type="text" id="s-anon" placeholder="eyJhbGciOi..."
+            style="width:100%;padding:9px;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.82rem;outline:none;" />
+        </div>
+        <button onclick="saveConfig()" style="padding:8px 16px;background:var(--cyan);color:#000;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:.82rem;">
+          Хадгалах
+        </button>
+      </div>
+    </details>
+  </div>
+</div>
+
+<!-- ══ APP ═══════════════════════════════════════════════════════ -->
+<div id="app">
+  <!-- Top bar -->
+  <div class="topbar">
+    <img src="https://loyalty.woowpay.mn/logo-white.png" class="topbar-logo" alt="WoowPay" onerror="this.style.display='none'" />
+    <div class="topbar-title">Loyalty Admin</div>
+    <span class="topbar-user" id="topbar-user"></span>
+    <button class="btn-logout" onclick="logout()">Гарах</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Нийт клиент</div>
+      <div class="stat-val" id="s-total">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Идэвхтэй</div>
+      <div class="stat-val" id="s-active">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Нийт эргэлт</div>
+      <div class="stat-val" id="s-spins">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Ашигласан эргэлт</div>
+      <div class="stat-val" id="s-used">–</div>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <input type="text" class="toolbar-search" id="search-input" placeholder="🔍 Нэр, утас, код хайх..." oninput="filterClients()" />
+    <select class="filter-sel" id="filter-type" onchange="filterClients()">
+      <option value="">Бүгд</option>
+      <option value="client">Харилцагч</option>
+      <option value="merchant">Мерчант</option>
+    </select>
+    <select class="filter-sel" id="filter-status" onchange="filterClients()">
+      <option value="">Бүгд</option>
+      <option value="true">Идэвхтэй</option>
+      <option value="false">Идэвхгүй</option>
+    </select>
+    <button class="btn-sm btn-import" onclick="document.getElementById('csv-file').click()">📥 CSV Оруулах</button>
+    <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="importCSV(event)" />
+    <button class="btn-sm btn-export" onclick="exportCSV()">📤 CSV Татах</button>
+    <button class="btn-sm btn-add" onclick="openModal()">+ Шинэ клиент</button>
+  </div>
+
+  <!-- Config notice -->
+  <div class="config-box" id="config-box">
+    <strong>💡 Loyalty сайтад нэмэх .env тохиргоо:</strong>
+    <code id="cfg-url"></code>
+    <code id="cfg-key"></code>
+    <span style="font-size:.72rem;">WoowPayLoyalty/.env файлд хуулж нэмнэ үү, дараа нь дахин deploy хийнэ.</span>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Нэр</th>
+          <th>Утас</th>
+          <th>Код</th>
+          <th>Төрөл</th>
+          <th>Эргэлт</th>
+          <th>Статус</th>
+          <th>Сүүлд эргүүлсэн</th>
+          <th>Үйлдэл</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <tr class="empty-row"><td colspan="8">Ачааллаж байна...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination">
+    <button class="page-btn" id="prev-btn" onclick="changePage(-1)" disabled>← Өмнөх</button>
+    <span id="page-info">1 / 1</span>
+    <button class="page-btn" id="next-btn" onclick="changePage(1)" disabled>Дараах →</button>
+  </div>
+</div>
+
+<!-- ══ MODAL ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal" onclick="closeOnBg(event)">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Шинэ клиент нэмэх</div>
+    <div class="form-row">
+      <label>Нэр *</label>
+      <input type="text" id="f-name" placeholder="Овог нэр" />
+    </div>
+    <div class="form-row">
+      <label>Утасны дугаар *</label>
+      <input type="text" id="f-phone" placeholder="99001234" maxlength="12" />
+    </div>
+    <div class="form-row">
+      <label>Урамшуулал код *</label>
+      <div class="code-gen-row">
+        <input type="text" id="f-code" placeholder="WC-AB0012" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()" />
+        <button class="btn-gen" onclick="genCode()">🎲 Авто</button>
+      </div>
+      <div class="hint">WC- = Харилцагч &nbsp;|&nbsp; WM- = Мерчант</div>
+    </div>
+    <div class="form-row">
+      <label>Төрөл *</label>
+      <select id="f-type">
+        <option value="client">Харилцагч (client)</option>
+        <option value="merchant">Мерчант (merchant)</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Хүрд эргүүлэх эрх (тоо) *</label>
+      <input type="number" id="f-spins" value="1" min="1" max="100" />
+    </div>
+    <div class="form-row">
+      <label>Идэвхтэй</label>
+      <select id="f-enabled">
+        <option value="true">Тийм – Эргэлт хийж болно</option>
+        <option value="false">Үгүй – Хаасан</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Тэмдэглэл</label>
+      <textarea id="f-notes" placeholder="Нэмэлт мэдээлэл..."></textarea>
+    </div>
+    <div class="modal-err" id="modal-err"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Цуцлах</button>
+      <button class="btn-save" id="btn-save" onclick="saveClient()">Хадгалах</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  CONFIG — stored in localStorage
+// ══════════════════════════════════════════════════════════════
+const LS_URL  = 'wp_supa_url';
+const LS_KEY  = 'wp_supa_key';
+
+function getConfig() {
+  return {
+    url: document.getElementById('s-url')?.value.trim() || localStorage.getItem(LS_URL) || '',
+    key: document.getElementById('s-anon')?.value.trim() || localStorage.getItem(LS_KEY) || '',
+  };
+}
+function saveConfig() {
+  const url = document.getElementById('s-url').value.trim();
+  const key = document.getElementById('s-anon').value.trim();
+  if (!url || !key) { alert('URL болон Anon Key оруулна уу'); return; }
+  localStorage.setItem(LS_URL, url);
+  localStorage.setItem(LS_KEY, key);
+  showToast('Тохиргоо хадгалагдлаа ✓', 'success');
+  initSupabase(url, key);
+}
+
+// Pre-fill from localStorage
+window.addEventListener('DOMContentLoaded', () => {
+  const url = localStorage.getItem(LS_URL) || '';
+  const key = localStorage.getItem(LS_KEY) || '';
+  if (document.getElementById('s-url')) document.getElementById('s-url').value = url;
+  if (document.getElementById('s-anon')) document.getElementById('s-anon').value = key;
+  if (url && key) initSupabase(url, key);
+
+  // Enter key on login
+  ['l-email','l-pass'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') login();
+    });
+  });
+});
+
+// ══════════════════════════════════════════════════════════════
+//  SUPABASE CLIENT
+// ══════════════════════════════════════════════════════════════
+let supabase = null;
+
+function initSupabase(url, key) {
+  try {
+    supabase = window.supabase.createClient(url, key);
+  } catch(e) {
+    console.error('Supabase init error', e);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════════════════════════
+async function login() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass  = document.getElementById('l-pass').value;
+  const errEl = document.getElementById('l-err');
+  const btn   = document.getElementById('l-btn');
+  errEl.textContent = '';
+  if (!email || !pass) { errEl.textContent = 'Имэйл болон нууц үгээ оруулна уу'; return; }
+
+  const cfg = getConfig();
+  if (!cfg.url || !cfg.key) {
+    errEl.textContent = 'Supabase URL болон Anon Key тохируулна уу (доорх ⚙️)';
+    return;
+  }
+  if (!supabase) initSupabase(cfg.url, cfg.key);
+
+  btn.disabled = true;
+  btn.textContent = 'Нэвтэрч байна...';
+  try {
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+    showApp(email, cfg);
+  } catch(e) {
+    errEl.textContent = e.message || 'Нэвтрэх боломжгүй';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Нэвтрэх';
+  }
+}
+
+async function logout() {
+  if (supabase) await supabase.auth.signOut();
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+document.getElementById('l-btn').addEventListener('click', login);
+
+// ══════════════════════════════════════════════════════════════
+//  APP INIT
+// ══════════════════════════════════════════════════════════════
+function showApp(email, cfg) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('topbar-user').textContent = email;
+
+  // Show env hint
+  const box = document.getElementById('config-box');
+  document.getElementById('cfg-url').textContent = `VITE_SUPABASE_URL=${cfg.url}`;
+  document.getElementById('cfg-key').textContent = `VITE_SUPABASE_ANON_KEY=${cfg.key}`;
+  box.classList.add('show');
+  setTimeout(() => box.classList.remove('show'), 8000);
+
+  loadClients();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DATA
+// ══════════════════════════════════════════════════════════════
+let allClients   = [];
+let filteredList = [];
+let currentPage  = 1;
+const PAGE_SIZE  = 20;
+
+async function loadClients() {
+  if (!supabase) return;
+  const { data, error } = await supabase
+    .from('clients')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) { showToast('Өгөгдөл татахад алдаа гарлаа', 'error'); return; }
+  allClients = data || [];
+  updateStats();
+  filterClients();
+}
+
+function updateStats() {
+  const active    = allClients.filter(c => c.enabled);
+  const totalSpins = allClients.reduce((s, c) => s + (c.spins || 0), 0);
+  const usedSpins  = allClients.reduce((s, c) => s + (c.spins_used || 0), 0);
+  document.getElementById('s-total').textContent  = allClients.length;
+  document.getElementById('s-active').textContent = active.length;
+  document.getElementById('s-spins').textContent  = totalSpins;
+  document.getElementById('s-used').textContent   = usedSpins;
+}
+
+function filterClients() {
+  const q    = (document.getElementById('search-input').value || '').toLowerCase();
+  const type = document.getElementById('filter-type').value;
+  const stat = document.getElementById('filter-status').value;
+
+  filteredList = allClients.filter(c => {
+    const matchQ = !q || (c.name||'').toLowerCase().includes(q)
+                      || (c.phone||'').includes(q)
+                      || (c.code||'').toLowerCase().includes(q);
+    const matchT = !type || c.user_type === type;
+    const matchS = stat === '' || String(c.enabled) === stat;
+    return matchQ && matchT && matchS;
+  });
+  currentPage = 1;
+  renderTable();
+}
+
+function changePage(dir) {
+  const max = Math.ceil(filteredList.length / PAGE_SIZE) || 1;
+  currentPage = Math.min(Math.max(1, currentPage + dir), max);
+  renderTable();
+}
+
+function renderTable() {
+  const tbody  = document.getElementById('table-body');
+  const total  = Math.ceil(filteredList.length / PAGE_SIZE) || 1;
+  const start  = (currentPage - 1) * PAGE_SIZE;
+  const slice  = filteredList.slice(start, start + PAGE_SIZE);
+
+  document.getElementById('page-info').textContent = `${currentPage} / ${total}`;
+  document.getElementById('prev-btn').disabled = currentPage <= 1;
+  document.getElementById('next-btn').disabled = currentPage >= total;
+
+  if (!slice.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">Илэрц олдсонгүй</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = slice.map(c => {
+    const pct  = c.spins > 0 ? Math.min(100, Math.round((c.spins_used / c.spins) * 100)) : 0;
+    const date = c.last_spin_at
+      ? new Date(c.last_spin_at).toLocaleDateString('mn-MN')
+      : '—';
+    return `
+      <tr>
+        <td>${esc(c.name)}</td>
+        <td>${esc(c.phone)}</td>
+        <td><code style="font-size:.8rem;color:var(--cyan)">${esc(c.code)}</code></td>
+        <td><span class="badge badge-${c.user_type}">${c.user_type === 'merchant' ? 'Мерчант' : 'Харилцагч'}</span></td>
+        <td>
+          <div class="spins-bar">
+            <span style="font-size:.82rem">${c.spins_used}/${c.spins}</span>
+            <div class="spins-track"><div class="spins-fill" style="width:${pct}%"></div></div>
+          </div>
+        </td>
+        <td><span class="badge ${c.enabled ? 'badge-on' : 'badge-off'}">${c.enabled ? 'Идэвхтэй' : 'Хаасан'}</span></td>
+        <td style="font-size:.78rem;color:var(--muted)">${date}</td>
+        <td>
+          <div class="actions">
+            <button class="btn-icon" title="Засах" onclick="editClient('${c.id}')">✏️</button>
+            <button class="btn-icon ${c.enabled ? 'danger' : 'success'}" title="${c.enabled ? 'Хаах' : 'Нээх'}"
+              onclick="toggleEnabled('${c.id}', ${c.enabled})">${c.enabled ? '🔒' : '🔓'}</button>
+            <button class="btn-icon" title="Эргэлт нэмэх" onclick="addSpins('${c.id}', '${esc(c.name)}')">➕</button>
+            <button class="btn-icon danger" title="Устгах" onclick="deleteClient('${c.id}', '${esc(c.name)}')">🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  MODAL
+// ══════════════════════════════════════════════════════════════
+let editingId = null;
+
+function openModal(client = null) {
+  editingId = client?.id || null;
+  document.getElementById('modal-title').textContent = client ? 'Клиент засах' : 'Шинэ клиент нэмэх';
+  document.getElementById('f-name').value    = client?.name     || '';
+  document.getElementById('f-phone').value   = client?.phone    || '';
+  document.getElementById('f-code').value    = client?.code     || '';
+  document.getElementById('f-type').value    = client?.user_type|| 'client';
+  document.getElementById('f-spins').value   = client?.spins    ?? 1;
+  document.getElementById('f-enabled').value = client ? String(client.enabled) : 'true';
+  document.getElementById('f-notes').value   = client?.notes    || '';
+  document.getElementById('modal-err').textContent = '';
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('f-name').focus();
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function closeOnBg(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+
+function editClient(id) {
+  const c = allClients.find(x => x.id === id);
+  if (c) openModal(c);
+}
+
+function genCode() {
+  const type   = document.getElementById('f-type').value;
+  const prefix = type === 'merchant' ? 'WM' : 'WC';
+  const chars  = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const digits = '0123456789';
+  const rand   = (s) => s[Math.floor(Math.random() * s.length)];
+  const code   = `${prefix}-${rand(chars)}${rand(chars)}${rand(digits)}${rand(digits)}${rand(digits)}${rand(digits)}`;
+  document.getElementById('f-code').value = code;
+}
+
+async function saveClient() {
+  const name    = document.getElementById('f-name').value.trim();
+  const phone   = document.getElementById('f-phone').value.trim();
+  const code    = document.getElementById('f-code').value.trim().toUpperCase();
+  const type    = document.getElementById('f-type').value;
+  const spins   = parseInt(document.getElementById('f-spins').value) || 1;
+  const enabled = document.getElementById('f-enabled').value === 'true';
+  const notes   = document.getElementById('f-notes').value.trim();
+  const errEl   = document.getElementById('modal-err');
+  const btn     = document.getElementById('btn-save');
+
+  if (!name || !phone || !code) {
+    errEl.textContent = 'Нэр, утас, код заавал оруулна уу';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Хадгалж байна...';
+  errEl.textContent = '';
+
+  try {
+    const payload = { name, phone, code, user_type: type, spins, enabled, notes };
+    let error;
+    if (editingId) {
+      ({ error } = await supabase.from('clients').update(payload).eq('id', editingId));
+    } else {
+      payload.spins_used = 0;
+      ({ error } = await supabase.from('clients').insert(payload));
+    }
+    if (error) throw error;
+    showToast(editingId ? 'Клиент шинэчлэгдлээ ✓' : 'Клиент нэмэгдлээ ✓', 'success');
+    closeModal();
+    loadClients();
+  } catch(e) {
+    errEl.textContent = e.message || 'Алдаа гарлаа';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Хадгалах';
+  }
+}
+
+async function toggleEnabled(id, current) {
+  const { error } = await supabase
+    .from('clients').update({ enabled: !current }).eq('id', id);
+  if (error) { showToast('Алдаа гарлаа', 'error'); return; }
+  showToast(!current ? 'Идэвхжүүлсэн ✓' : 'Хаасан ✓', 'success');
+  loadClients();
+}
+
+async function addSpins(id, name) {
+  const n = parseInt(prompt(`"${name}" клиентэд хэдэн эргэлт нэмэх вэ?`, '1'));
+  if (!n || isNaN(n) || n <= 0) return;
+  const client = allClients.find(x => x.id === id);
+  if (!client) return;
+  const { error } = await supabase
+    .from('clients').update({ spins: client.spins + n }).eq('id', id);
+  if (error) { showToast('Алдаа гарлаа', 'error'); return; }
+  showToast(`${n} эргэлт нэмэгдлээ ✓`, 'success');
+  loadClients();
+}
+
+async function deleteClient(id, name) {
+  if (!confirm(`"${name}" клиентийг устгах уу?\nЭнэ үйлдлийг буцаах боломжгүй.`)) return;
+  const { error } = await supabase.from('clients').delete().eq('id', id);
+  if (error) { showToast('Устгахад алдаа гарлаа', 'error'); return; }
+  showToast('Устгасан ✓', 'success');
+  loadClients();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CSV IMPORT / EXPORT
+// ══════════════════════════════════════════════════════════════
+function exportCSV() {
+  const rows = [['Нэр','Утас','Код','Төрөл','Эргэлт','Ашигласан','Идэвхтэй','Тэмдэглэл']];
+  allClients.forEach(c => rows.push([
+    c.name, c.phone, c.code, c.user_type, c.spins, c.spins_used,
+    c.enabled ? 'тийм' : 'үгүй', c.notes || ''
+  ]));
+  const csv = rows.map(r => r.map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿'+csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `woowpay-clients-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+function importCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) { showToast('CSV хоосон байна', 'error'); return; }
+    // Skip header, parse rows
+    const inserts = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseCSVLine(lines[i]);
+      if (cols.length < 4) continue;
+      inserts.push({
+        name:      cols[0] || '',
+        phone:     cols[1] || '',
+        code:      (cols[2] || '').toUpperCase(),
+        user_type: cols[3] === 'merchant' ? 'merchant' : 'client',
+        spins:     parseInt(cols[4]) || 1,
+        spins_used: 0,
+        enabled:   cols[6] !== 'үгүй',
+        notes:     cols[7] || '',
+      });
+    }
+    if (!inserts.length) { showToast('Хүчинтэй мөр олдсонгүй', 'error'); return; }
+    const { error } = await supabase.from('clients').upsert(inserts, { onConflict: 'code' });
+    if (error) { showToast('Импортод алдаа: ' + error.message, 'error'); return; }
+    showToast(`${inserts.length} клиент импортлогдлоо ✓`, 'success');
+    loadClients();
+    event.target.value = '';
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (const ch of line) {
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { result.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  result.push(cur);
+  return result.map(s => s.replace(/^"|"$/g,''));
+}
+
+// ══════════════════════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════════════════════
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove('show'); }, 2800);
+}
+</script>
+</body>
+</html>

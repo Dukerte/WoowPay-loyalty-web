@@ -1,0 +1,40 @@
+/**
+ * Tiny Supabase REST helper — no SDK dependency.
+ * Uses the Supabase PostgREST + RPC API directly via fetch.
+ */
+
+const SUPA_URL  = (import.meta.env.VITE_SUPABASE_URL  as string) || '';
+const SUPA_KEY  = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
+
+export const hasSupabase = (): boolean => !!(SUPA_URL && SUPA_KEY);
+
+function headers(): HeadersInit {
+  return {
+    'apikey':        SUPA_KEY,
+    'Authorization': `Bearer ${SUPA_KEY}`,
+    'Content-Type':  'application/json',
+  };
+}
+
+/** SELECT single row from a table with a filter */
+export async function selectOne<T>(
+  table: string,
+  filter: Record<string, string>
+): Promise<T | null> {
+  const params = new URLSearchParams({ ...filter, limit: '1' });
+  const res = await fetch(`${SUPA_URL}/rest/v1/${table}?${params}`, {
+    headers: { ...headers(), Accept: 'application/vnd.pgrst.object+json' },
+  });
+  if (!res.ok) return null;
+  try { return await res.json() as T; }
+  catch { return null; }
+}
+
+/** Call a stored RPC function */
+export async function rpc(fn: string, args: Record<string, string>): Promise<void> {
+  await fetch(`${SUPA_URL}/rest/v1/rpc/${fn}`, {
+    method:  'POST',
+    headers: headers(),
+    body:    JSON.stringify(args),
+  });
+}
