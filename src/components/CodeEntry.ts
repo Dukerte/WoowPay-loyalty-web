@@ -72,6 +72,28 @@ export function CodeEntry(
         </div>
         </div>
       </div>
+
+      <!-- Sign-off flourish below the card — turns the box's crop edge
+           into a deliberate divider instead of a sudden cutoff, then
+           closes the hero with the brand's "Ойр Байя" signature and a
+           couple of quiet contact touchpoints. -->
+      <div class="ce-signoff">
+        <div class="ce-signoff-divider"><span class="ce-signoff-spark">✦</span></div>
+        <img src="/client-caption.webp" class="ce-signoff-caption" alt="Харилцагч танд" />
+        <div class="ce-signoff-mark">
+          <img src="/oirbaiy-signature.webp" class="ce-signoff-signature" alt="Ойр Байя" />
+          <img src="/heart-accent.webp" class="ce-signoff-heart" alt="" aria-hidden="true" />
+        </div>
+        <div class="ce-signoff-contact">
+          <a class="ce-signoff-fb" href="https://facebook.com/woowpay" target="_blank" rel="noopener noreferrer">
+            <span class="ce-signoff-fb-icon">f</span> facebook.com/woowpay
+          </a>
+          <a class="ce-signoff-qr" href="https://woow.mn" target="_blank" rel="noopener noreferrer">
+            <img src="/app-qr.webp" width="44" height="44" alt="Апп татах QR код" />
+            <span>Апп татах</span>
+          </a>
+        </div>
+      </div>
     `;
 
     const input = el.querySelector<HTMLInputElement>('#code-input')!;
