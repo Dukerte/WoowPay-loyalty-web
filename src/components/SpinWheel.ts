@@ -102,7 +102,7 @@ export function SpinWheel({ prizes, onResult }: SpinWheelOptions): {
       const maxLineW = R * 0.48;
 
       // Measure and split into ≤2 lines
-      ctx.font = 'bold 13px Inter, sans-serif';
+      ctx.font = 'bold 13px Rubik, sans-serif';
       let line1 = '', line2 = '';
       let cur = '';
       for (const w of words) {

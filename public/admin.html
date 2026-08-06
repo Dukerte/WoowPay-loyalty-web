@@ -4,25 +4,33 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>WoowPay Loyalty — Admin Panel</title>
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+<meta name="theme-color" content="#030132" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&family=Roboto:ital,wght@0,400;0,500;0,700;0,900;1,400&display=swap" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   /* ── Reset & Base ─────────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --navy:   #0a1628;
-    --navy2:  #0f2040;
+    /* Aligned to the official Woow Pay Design System (brand book LG.08/LG.10) */
+    --navy:   #030132;
+    --navy2:  #0B0A52;
     --navy3:  #162a52;
-    --cyan:   #29bde0;
-    --cyan2:  #0ea5c9;
-    --green:  #10b981;
-    --amber:  #f59e0b;
-    --red:    #ef4444;
+    --cyan:   #33A8DD;
+    --cyan2:  #0B6BFF;
+    --green:  #1FA971;
+    --amber:  #F2A93B;
+    --red:    #E5564E;
     --text:   #e2e8f0;
-    --muted:  #94a3b8;
+    --muted:  #AEB9C9;
     --border: rgba(255,255,255,.10);
     --card:   rgba(255,255,255,.05);
     --radius: 12px;
-    --font:   'Inter', system-ui, sans-serif;
+    --font:        'Roboto', system-ui, sans-serif;
+    --font-display: 'Rubik', system-ui, sans-serif;
   }
   body {
     font-family: var(--font);
@@ -51,7 +59,7 @@
     text-align: center;
   }
   .login-logo { width: 160px; margin-bottom: 8px; }
-  .login-title { font-size: 1.25rem; font-weight: 700; color: var(--cyan); margin-bottom: 4px; }
+  .login-title { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: var(--cyan2); margin-bottom: 4px; }
   .login-sub   { font-size: 0.82rem; color: var(--muted); margin-bottom: 32px; }
   .login-field { margin-bottom: 16px; text-align: left; }
   .login-field label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
@@ -302,7 +310,7 @@
     <img src="https://loyalty.woowpay.mn/logo-white.png" class="topbar-logo" alt="WoowPay" onerror="this.style.display='none'" />
     <div class="topbar-title">Loyalty Admin</div>
     <div class="topbar-tabs">
-      <button class="topbar-tab active" id="tab-clients" onclick="switchView('clients')">👥 Клиентүүд</button>
+      <button class="topbar-tab active" id="tab-clients" onclick="switchView('clients')">👥 Харилцагчид</button>
       <button class="topbar-tab" id="tab-prizes" onclick="switchView('prizes')">🎡 Шагнал ба магадлал</button>
     </div>
     <span class="topbar-user" id="topbar-user"></span>
@@ -314,7 +322,7 @@
     <!-- Stats -->
     <div class="stats-row">
       <div class="stat-card">
-        <div class="stat-label">Нийт клиент</div>
+        <div class="stat-label">Нийт харилцагч</div>
         <div class="stat-val" id="s-total">–</div>
       </div>
       <div class="stat-card">
@@ -347,7 +355,7 @@
       <button class="btn-sm btn-import" onclick="document.getElementById('csv-file').click()">📥 CSV Оруулах</button>
       <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="importCSV(event)" />
       <button class="btn-sm btn-export" onclick="exportCSV()">📤 CSV Татах</button>
-      <button class="btn-sm btn-add" onclick="openModal()">+ Шинэ клиент</button>
+      <button class="btn-sm btn-add" onclick="openModal()">+ Шинэ харилцагч</button>
     </div>
 
     <!-- Table -->
@@ -412,7 +420,7 @@
 <!-- ══ CLIENT MODAL ═══════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modal" onclick="closeOnBg(event, 'modal')">
   <div class="modal">
-    <div class="modal-title" id="modal-title">Шинэ клиент нэмэх</div>
+    <div class="modal-title" id="modal-title">Шинэ харилцагч нэмэх</div>
     <div class="form-row">
       <label>Нэр *</label>
       <input type="text" id="f-name" placeholder="Овог нэр" />
@@ -738,7 +746,7 @@ let editingId = null;
 
 function openModal(client = null) {
   editingId = client?.id || null;
-  document.getElementById('modal-title').textContent = client ? 'Клиент засах' : 'Шинэ клиент нэмэх';
+  document.getElementById('modal-title').textContent = client ? 'Харилцагч засах' : 'Шинэ харилцагч нэмэх';
   document.getElementById('f-name').value    = client?.name     || '';
   document.getElementById('f-phone').value   = client?.phone    || '';
   document.getElementById('f-code').value    = client?.code     || '';
@@ -799,7 +807,7 @@ async function saveClient() {
       ({ error } = await sbClient.from('clients').insert(payload));
     }
     if (error) throw error;
-    showToast(editingId ? 'Клиент шинэчлэгдлээ ✓' : 'Клиент нэмэгдлээ ✓', 'success');
+    showToast(editingId ? 'Харилцагч шинэчлэгдлээ ✓' : 'Харилцагч нэмэгдлээ ✓', 'success');
     closeModal();
     loadClients();
   } catch(e) {
@@ -819,7 +827,7 @@ async function toggleEnabled(id, current) {
 }
 
 async function addSpins(id, name) {
-  const n = parseInt(prompt(`"${name}" клиентэд хэдэн эргэлт нэмэх вэ?`, '1'));
+  const n = parseInt(prompt(`"${name}" харилцагчид хэдэн эргэлт нэмэх вэ?`, '1'));
   if (!n || isNaN(n) || n <= 0) return;
   const client = allClients.find(x => x.id === id);
   if (!client) return;
@@ -831,7 +839,7 @@ async function addSpins(id, name) {
 }
 
 async function deleteClient(id, name) {
-  if (!confirm(`"${name}" клиентийг устгах уу?\nЭнэ үйлдлийг буцаах боломжгүй.`)) return;
+  if (!confirm(`"${name}" харилцагчийг устгах уу?\nЭнэ үйлдлийг буцаах боломжгүй.`)) return;
   const { error } = await sbClient.from('clients').delete().eq('id', id);
   if (error) { showToast('Устгахад алдаа гарлаа', 'error'); return; }
   showToast('Устгасан ✓', 'success');
@@ -861,7 +869,7 @@ async function openRewards(clientId, name) {
     return;
   }
   if (!data || !data.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="4">Энэ клиент шагнал хожоогүй байна (эсвэл спин хийхэд шагнал бүртгэгдээгүй хуучин үе)</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="4">Энэ харилцагч шагнал хожоогүй байна (эсвэл спин хийхэд шагнал бүртгэгдээгүй хуучин үе)</td></tr>`;
     return;
   }
 
@@ -1065,7 +1073,7 @@ function importCSV(event) {
     if (!inserts.length) { showToast('Хүчинтэй мөр олдсонгүй', 'error'); return; }
     const { error } = await sbClient.from('clients').upsert(inserts, { onConflict: 'code' });
     if (error) { showToast('Импортод алдаа: ' + error.message, 'error'); return; }
-    showToast(`${inserts.length} клиент импортлогдлоо ✓`, 'success');
+    showToast(`${inserts.length} харилцагч импортлогдлоо ✓`, 'success');
     loadClients();
     event.target.value = '';
   };

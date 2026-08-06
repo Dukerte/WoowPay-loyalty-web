@@ -2,7 +2,7 @@
 <html lang="mn">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WoowPay Loyalty — Азаа туршаарай!</title>
 
   <!-- Open Graph — Facebook share preview -->
@@ -18,9 +18,41 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Official Woow Pay brand fonts (brand book LG.10): Rubik for
+       headlines/UI, Roboto for body — both have full Mongolian
+       Cyrillic coverage. -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&family=Roboto:ital,wght@0,400;0,500;0,700;0,900;1,400&display=swap" />
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <meta name="theme-color" content="#030132" />
 </head>
 <body>
   <div id="app"></div>
+
+  <footer class="site-footer">
+    <a class="footer-link" href="https://woowpay.mn" target="_blank" rel="noopener noreferrer">© <span id="footer-year"></span> Woow Pay</a>
+    <span class="footer-sep">·</span>
+    <button class="footer-link footer-btn" id="rules-open">Дүрэм</button>
+    <span class="footer-sep">·</span>
+    <a class="footer-link" href="https://woowpay.mn" target="_blank" rel="noopener noreferrer">Тусламж</a>
+  </footer>
+
+  <div class="rules-overlay" id="rules-overlay">
+    <div class="rules-card" role="dialog" aria-modal="true" aria-labelledby="rules-title">
+      <button class="rules-close" id="rules-close" aria-label="Хаах">✕</button>
+      <h2 class="rules-title" id="rules-title">Тоглоомын нөхцөл</h2>
+      <div class="rules-body">
+        <p><strong>Магадлал.</strong> Хүрдэн дэх шагнал тус бүрийн магадлал ялгаатай бөгөөд урамшууллын хугацаанд өөрчлөгдөж болно.</p>
+        <p><strong>Эрхийн код.</strong> Код нэг удаа олгогдсон тооны эргэлттэй бөгөөд Woow Pay-н сонгосон хугацаанд хүчинтэй.</p>
+        <p><strong>Шагнал авах.</strong> Хожсон шагналаа харуулсан дэлгэцийн зургаа (screenshot) хадгалж, харилцагчийн код, утасны дугаараа мэдэгдэн, холбогдох мерчант эсвэл Woow Pay-тай холбогдож авна уу.</p>
+        <p><strong>Асуулт байвал</strong> дээрх "Тусламж" холбоосоор бидэнтэй холбогдоорой.</p>
+      </div>
+      <p class="rules-note">Энэ хуудас нь ерөнхий тайлбар бөгөөд албан ёсны дүрэм, нөхцөлийг Woow Pay баталгаажуулна.</p>
+    </div>
+  </div>
+
   <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

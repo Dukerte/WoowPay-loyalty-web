@@ -9,8 +9,10 @@ export function SpinScreen(
   totalSpins: number,
   phone: string,
   prizes: Prize[],
-  onDone: () => void
+  onDone: () => void,
+  onFinished: (won: Prize[], code: string) => void
 ): HTMLElement {
+  const wonThisSession: Prize[] = [];
   const el         = document.createElement('div');
   el.className     = 'spin-screen';
 
@@ -91,16 +93,23 @@ export function SpinScreen(
     onResult(prize) {
       spinsUsed++;
       spinsLeft--;
+      wonThisSession.push(prize);
       recordSpin(code, prize.label); // fire-and-forget Supabase update + prize log
       renderHeader();
       updateLabel();
       if (spinsLeft <= 0) spinBtn.disabled = true;
-      modal.show(prize, spinsLeft, () => {
+      const spinsLeftAtWin = spinsLeft;
+      modal.show(prize, spinsLeft, code, () => {
         // Re-enable spin button and trigger next spin
         spinBtn.disabled = false;
         spin();
         setTimeout(() => { if (spinsLeft > 0) spinBtn.disabled = false; }, 5500);
-      }, onDone);
+      }, () => {
+        // Closed out — if this was their last spin, show the closing
+        // summary screen instead of dropping straight back to code entry.
+        if (spinsLeftAtWin <= 0) onFinished(wonThisSession, code);
+        else onDone();
+      });
     },
   });
 

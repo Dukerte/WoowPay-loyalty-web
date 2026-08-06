@@ -1,4 +1,5 @@
 import type { Prize } from '../types';
+import { logEvent } from '../data/analytics';
 
 const CONF_COLORS = ['#29BDE0','#FF6B35','#a855f7','#f59e0b','#ec4899','#22c55e','#38bdf8','#fb923c'];
 
@@ -25,7 +26,7 @@ function shareToFacebook() {
 // ── Component ────────────────────────────────────────────
 export function ResultModal(): {
   el: HTMLElement;
-  show: (prize: Prize, spinsLeft: number, onNext: () => void, onDone: () => void) => void;
+  show: (prize: Prize, spinsLeft: number, code: string, onNext: () => void, onDone: () => void) => void;
   hide: () => void;
 } {
   const el = document.createElement('div');
@@ -42,7 +43,7 @@ export function ResultModal(): {
       <div class="rm-header" id="rm-header">
         <div class="rm-confetti" id="rm-confetti"></div>
         <div class="rm-owl-ring">
-          <img src="/owl-thumbsup.png" alt="Woow owl" />
+          <img src="/owl-thumbsup.webp" width="90" height="70" alt="Woow owl" />
         </div>
       </div>
 
@@ -51,6 +52,14 @@ export function ResultModal(): {
         <h2  class="rm-prize-label" id="rm-label"></h2>
         <p   class="rm-prize-desc"  id="rm-desc"></p>
         <span class="rm-spins-pill" id="rm-spins" style="display:none"></span>
+
+        <!-- Screenshot-friendly receipt: proof of what was won and when,
+             so the client has something to show the merchant. -->
+        <div class="rm-receipt" id="rm-receipt">
+          <span id="rm-receipt-code"></span>
+          <span class="rm-receipt-dot">•</span>
+          <span id="rm-receipt-date"></span>
+        </div>
 
         <!-- Facebook share button -->
         <button class="rm-btn-share" id="rm-share">
@@ -78,11 +87,15 @@ export function ResultModal(): {
   const labelEl  = el.querySelector<HTMLElement>('#rm-label')!;
   const descEl   = el.querySelector<HTMLElement>('#rm-desc')!;
   const spinsEl  = el.querySelector<HTMLElement>('#rm-spins')!;
+  const receiptCodeEl = el.querySelector<HTMLElement>('#rm-receipt-code')!;
+  const receiptDateEl = el.querySelector<HTMLElement>('#rm-receipt-date')!;
   const shareBtn = el.querySelector<HTMLButtonElement>('#rm-share')!;
   const nextBtn  = el.querySelector<HTMLButtonElement>('#rm-next')!;
   const doneBtn  = el.querySelector<HTMLButtonElement>('#rm-done')!;
 
+  let currentCode = '';
   shareBtn.addEventListener('click', () => {
+    logEvent('share_clicked', currentCode);
     shareToFacebook();
   });
 
@@ -95,13 +108,21 @@ export function ResultModal(): {
     confetti.innerHTML = buildConfetti();
   }
 
-  function show(prize: Prize, spinsLeft: number, onNext: () => void, onDone: () => void) {
+  let lastFocused: HTMLElement | null = null;
+
+  function show(prize: Prize, spinsLeft: number, code: string, onNext: () => void, onDone: () => void) {
     header.style.background = `linear-gradient(135deg, ${prize.color}cc 0%, ${prize.color}88 100%)`;
     emojiEl.textContent = prize.emoji;
     labelEl.textContent = prize.label;
     descEl.textContent  = prize.desc;
     shareBtn.disabled = false;
     refreshConfetti();
+
+    currentCode = code;
+    receiptCodeEl.textContent = code;
+    receiptDateEl.textContent = new Date().toLocaleString('mn-MN', {
+      day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
 
     spinsEl.style.display = spinsLeft > 0 ? '' : 'none';
     if (spinsLeft > 0) spinsEl.textContent = `Танд ${spinsLeft} эргэлт үлдсэн байна`;
@@ -111,21 +132,33 @@ export function ResultModal(): {
       nextBtn.removeEventListener('click', handleNext);
       doneBtn.removeEventListener('click', handleDone);
       backdrop.removeEventListener('click', handleDone);
+      document.removeEventListener('keydown', handleKeydown);
     };
     const handleNext = () => { hide(); cleanup(); onNext(); };
     const handleDone = () => { hide(); cleanup(); onDone(); };
+    const handleKeydown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleDone();
+    };
 
     nextBtn.addEventListener('click', handleNext);
     doneBtn.addEventListener('click', handleDone);
     backdrop.addEventListener('click', handleDone);
+    document.addEventListener('keydown', handleKeydown);
 
+    // Move focus into the modal so keyboard/screen-reader users don't
+    // lose their place, and remember what to return focus to on close.
+    lastFocused = document.activeElement as HTMLElement;
     el.classList.remove('hidden');
-    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('visible')));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      el.classList.add('visible');
+      closeBtn.focus();
+    }));
   }
 
   function hide() {
     el.classList.remove('visible');
     setTimeout(() => el.classList.add('hidden'), 380);
+    lastFocused?.focus();
   }
 
   return { el, show, hide };

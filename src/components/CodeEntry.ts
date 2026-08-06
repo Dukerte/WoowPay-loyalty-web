@@ -1,5 +1,6 @@
 import { formatCodeInput, validateCode } from '../data/codeValidator';
 import { validateCodeRemote, verifyPhoneRemote } from '../data/clientService';
+import { logEvent } from '../data/analytics';
 import type { UserType } from '../types';
 
 export function CodeEntry(
@@ -15,10 +16,11 @@ export function CodeEntry(
       <div class="ce-card">
         <div class="ce-card-bar"></div>
         <div class="ce-card-body">
-          <img src="/owl-pointing.png" class="ce-owl" alt="" aria-hidden="true" />
+          <img src="/owl-pointing.webp" class="ce-owl" width="230" height="180" alt="" aria-hidden="true" />
           <div class="ce-form ce-step">
-            <p class="ce-eyebrow">Loyalty Reward</p>
+            <p class="ce-eyebrow">WOOW PAY · УРАМШУУЛАЛ</p>
             <h1 class="ce-title">Азаа туршаарай!</h1>
+            <p class="ce-context">Woow Pay-н харилцагч, мерчант танд зориулсан албан ёсны хүрдэн урамшуулал.</p>
             <p class="ce-sub">Эрхийн кодоо оруулаад<br/>хүрдийг эргүүлнэ үү 🎰</p>
 
             <div class="ce-input-wrap">
@@ -66,6 +68,7 @@ export function CodeEntry(
       try {
         const result = await validateCodeRemote(input.value);
         if (!result.valid) { showErr(result.error!); return; }
+        logEvent('code_valid', input.value.trim().toUpperCase(), result.userType);
         renderStep2(
           input.value.trim().toUpperCase(),
           result.userType!,
@@ -73,6 +76,7 @@ export function CodeEntry(
         );
       } catch {
         // Network error → fall back to local validation
+        logEvent('code_valid', input.value.trim().toUpperCase(), localCheck.userType);
         renderStep2(
           input.value.trim().toUpperCase(),
           localCheck.userType!,
@@ -90,7 +94,7 @@ export function CodeEntry(
       <div class="ce-card">
         <div class="ce-card-bar"></div>
         <div class="ce-card-body">
-          <img src="/owl-pointing.png" class="ce-owl" alt="" aria-hidden="true" />
+          <img src="/owl-pointing.webp" class="ce-owl" width="230" height="180" alt="" aria-hidden="true" />
           <div class="ce-form ce-step">
             <button id="back-btn" class="ce-back-btn">Буцах</button>
             <div class="ce-code-preview"><span>Код:</span> ${code}</div>
@@ -140,9 +144,11 @@ export function CodeEntry(
           showErr('Утасны дугаар таарахгүй байна. Бүртгэлтэй дугаараа оруулна уу');
           return;
         }
+        logEvent('phone_verified', code, userType);
         onValid(userType, spins, code, phone);
       } catch {
         // Network error → skip phone check
+        logEvent('phone_verified', code, userType);
         onValid(userType, spins, code, phone);
       }
     });
