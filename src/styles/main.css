@@ -163,6 +163,7 @@ html, body {
 /* Owl — mix-blend-mode:multiply removes white bg on white card */
 .ce-owl {
   width: 185px;
+  height: auto; /* prevent the width/height HTML attrs (added for CLS) from stretching it */
   flex-shrink: 0;
   align-self: flex-end;
   margin-right: -4px;
@@ -910,7 +911,7 @@ canvas.spin-wheel {
   padding: 32px 28px 28px;
   animation: fadeUp .45s cubic-bezier(.22,1,.36,1) both;
 }
-.es-owl { margin-bottom: 10px; }
+.es-owl { width: 120px; height: auto; margin-bottom: 10px; }
 .es-list {
   list-style: none;
   width: 100%;

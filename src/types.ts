@@ -1,6 +1,7 @@
 export type UserType = 'merchant' | 'client';
 
 export interface Prize {
+  id?:        string;  // prizes.id in Supabase, when sourced from the DB (used for FB share OG image)
   label:      string;   // full label shown in result modal
   shortLabel: string;   // short label shown on the wheel
   emoji: string;

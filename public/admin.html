@@ -11,6 +11,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&family=Roboto:ital,wght@0,400;0,500;0,700;0,900;1,400&display=swap" />
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <style>
   /* ── Reset & Base ─────────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -352,9 +353,9 @@
         <option value="true">Идэвхтэй</option>
         <option value="false">Идэвхгүй</option>
       </select>
-      <button class="btn-sm btn-import" onclick="document.getElementById('csv-file').click()">📥 CSV Оруулах</button>
-      <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="importCSV(event)" />
-      <button class="btn-sm btn-export" onclick="exportCSV()">📤 CSV Татах</button>
+      <button class="btn-sm btn-import" onclick="document.getElementById('csv-file').click()">📥 CSV/XLSX Оруулах</button>
+      <input type="file" id="csv-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importFile(event)" />
+      <button class="btn-sm btn-export" onclick="exportFile()">📤 CSV/XLSX Татах</button>
       <button class="btn-sm btn-add" onclick="openModal()">+ Шинэ харилцагч</button>
     </div>
 
@@ -370,11 +371,12 @@
             <th>Эргэлт</th>
             <th>Статус</th>
             <th>Сүүлд эргүүлсэн</th>
+            <th>Сүүлд хожсон</th>
             <th>Үйлдэл</th>
           </tr>
         </thead>
         <tbody id="table-body">
-          <tr class="empty-row"><td colspan="8">Ачааллаж байна...</td></tr>
+          <tr class="empty-row"><td colspan="9">Ачааллаж байна...</td></tr>
         </tbody>
       </table>
     </div>
@@ -644,6 +646,7 @@ let allClients   = [];
 let filteredList = [];
 let currentPage  = 1;
 const PAGE_SIZE  = 20;
+let latestPrizeByClient = {}; // client_id -> { label, won_at, fulfilled }
 
 async function loadClients() {
   if (!sbClient) return;
@@ -654,6 +657,20 @@ async function loadClients() {
 
   if (error) { showToast('Өгөгдөл татахад алдаа гарлаа', 'error'); return; }
   allClients = data || [];
+
+  // Latest prize per client, so it's visible in the table at a glance
+  // instead of only behind the 🎁 history button.
+  const { data: results } = await sbClient
+    .from('spin_results')
+    .select('client_id, prize_label, won_at, fulfilled')
+    .order('won_at', { ascending: false });
+  latestPrizeByClient = {};
+  (results || []).forEach(r => {
+    if (r.client_id && !latestPrizeByClient[r.client_id]) {
+      latestPrizeByClient[r.client_id] = { label: r.prize_label, wonAt: r.won_at, fulfilled: r.fulfilled };
+    }
+  });
+
   updateStats();
   filterClients();
 }
@@ -702,7 +719,7 @@ function renderTable() {
   document.getElementById('next-btn').disabled = currentPage >= total;
 
   if (!slice.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">Илэрц олдсонгүй</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="9">Илэрц олдсонгүй</td></tr>`;
     return;
   }
 
@@ -711,6 +728,10 @@ function renderTable() {
     const date = c.last_spin_at
       ? new Date(c.last_spin_at).toLocaleDateString('mn-MN')
       : '—';
+    const prize = latestPrizeByClient[c.id];
+    const prizeCell = prize
+      ? `${esc(prize.label)} <span class="badge ${prize.fulfilled ? 'badge-on' : 'badge-wait'}" style="margin-left:4px">${prize.fulfilled ? 'Олгосон' : 'Хүлээгдэж буй'}</span>`
+      : '<span style="color:var(--muted)">—</span>';
     return `
       <tr>
         <td>${esc(c.name)}</td>
@@ -725,6 +746,7 @@ function renderTable() {
         </td>
         <td><span class="badge ${c.enabled ? 'badge-on' : 'badge-off'}">${c.enabled ? 'Идэвхтэй' : 'Хаасан'}</span></td>
         <td style="font-size:.78rem;color:var(--muted)">${date}</td>
+        <td style="font-size:.82rem">${prizeCell}</td>
         <td>
           <div class="actions">
             <button class="btn-icon" title="Хожсон шагнал" onclick="openRewards('${c.id}', '${esc(c.name)}')">🎁</button>
@@ -897,6 +919,7 @@ async function toggleFulfilled(id, current) {
     const c = allClients.find(x => x.id === currentRewardsClientId);
     openRewards(currentRewardsClientId, c ? c.name : '');
   }
+  loadClients(); // refresh the "Сүүлд хожсон" column + stats too
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1031,53 +1054,103 @@ async function deletePrize(id, label) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  CSV IMPORT / EXPORT (clients)
+//  CSV/XLSX IMPORT / EXPORT (clients) — uses SheetJS (window.XLSX)
 // ══════════════════════════════════════════════════════════════
-function exportCSV() {
-  const rows = [['Нэр','Утас','Код','Төрөл','Эргэлт','Ашигласан','Идэвхтэй','Тэмдэглэл']];
-  allClients.forEach(c => rows.push([
-    c.name, c.phone, c.code, c.user_type, c.spins, c.spins_used,
-    c.enabled ? 'тийм' : 'үгүй', c.notes || ''
-  ]));
+const EXPORT_HEADERS = ['Нэр','Утас','Код','Төрөл','Эргэлт','Ашигласан','Идэвхтэй','Сүүлд хожсон шагнал','Олгосон эсэх','Тэмдэглэл'];
+
+function buildExportRows() {
+  const rows = [EXPORT_HEADERS];
+  allClients.forEach(c => {
+    const prize = latestPrizeByClient[c.id];
+    rows.push([
+      c.name, c.phone, c.code, c.user_type, c.spins, c.spins_used,
+      c.enabled ? 'тийм' : 'үгүй',
+      prize ? prize.label : '',
+      prize ? (prize.fulfilled ? 'тийм' : 'үгүй') : '',
+      c.notes || ''
+    ]);
+  });
+  return rows;
+}
+
+/** Export as .xlsx (falls back to .csv if SheetJS didn't load, e.g. offline). */
+function exportFile() {
+  const rows = buildExportRows();
+  const stamp = new Date().toISOString().slice(0,10);
+
+  if (window.XLSX) {
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = EXPORT_HEADERS.map(() => ({ wch: 18 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Харилцагчид');
+    XLSX.writeFile(wb, `woowpay-clients-${stamp}.xlsx`);
+    return;
+  }
+
+  // CSV fallback
   const csv = rows.map(r => r.map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob(['﻿'+csv], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `woowpay-clients-${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `woowpay-clients-${stamp}.csv`;
   a.click();
 }
 
-function importCSV(event) {
+function importFile(event) {
   const file = event.target.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
-    if (lines.length < 2) { showToast('CSV хоосон байна', 'error'); return; }
-    // Skip header, parse rows
-    const inserts = [];
-    for (let i = 1; i < lines.length; i++) {
-      const cols = parseCSVLine(lines[i]);
-      if (cols.length < 4) continue;
-      inserts.push({
-        name:      cols[0] || '',
-        phone:     cols[1] || '',
-        code:      (cols[2] || '').toUpperCase(),
-        user_type: cols[3] === 'merchant' ? 'merchant' : 'client',
-        spins:     parseInt(cols[4]) || 1,
-        spins_used: 0,
-        enabled:   cols[6] !== 'үгүй',
-        notes:     cols[7] || '',
-      });
-    }
-    if (!inserts.length) { showToast('Хүчинтэй мөр олдсонгүй', 'error'); return; }
-    const { error } = await sbClient.from('clients').upsert(inserts, { onConflict: 'code' });
-    if (error) { showToast('Импортод алдаа: ' + error.message, 'error'); return; }
-    showToast(`${inserts.length} харилцагч импортлогдлоо ✓`, 'success');
-    loadClients();
-    event.target.value = '';
-  };
-  reader.readAsText(file, 'UTF-8');
+  const isXlsx = /\.(xlsx|xls)$/i.test(file.name);
+
+  if (isXlsx) {
+    if (!window.XLSX) { showToast('XLSX сан ачаалагдсангүй — интернэт холболтоо шалгаад дахин оролдоно уу', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+      importRows(rows);
+      event.target.value = '';
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
+      const rows = lines.map(parseCSVLine);
+      importRows(rows);
+      event.target.value = '';
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+}
+
+/** Shared row -> upsert logic for both CSV and XLSX import.
+    Expects the same column order as EXPORT_HEADERS (extra trailing
+    columns like "Сүүлд хожсон шагнал" are informational only and
+    ignored on import — prizes are only ever written by the spin
+    wheel itself, never imported). */
+async function importRows(rows) {
+  if (rows.length < 2) { showToast('Файл хоосон байна', 'error'); return; }
+  const inserts = [];
+  for (let i = 1; i < rows.length; i++) {
+    const cols = rows[i];
+    if (!cols || cols.length < 4 || !cols[0]) continue;
+    inserts.push({
+      name:      String(cols[0] || ''),
+      phone:     String(cols[1] || ''),
+      code:      String(cols[2] || '').toUpperCase(),
+      user_type: cols[3] === 'merchant' ? 'merchant' : 'client',
+      spins:     parseInt(cols[4]) || 1,
+      spins_used: 0,
+      enabled:   cols[6] !== 'үгүй',
+      notes:     String(cols[9] || cols[7] || ''), // supports old (8-col) and new (10-col) layouts
+    });
+  }
+  if (!inserts.length) { showToast('Хүчинтэй мөр олдсонгүй', 'error'); return; }
+  const { error } = await sbClient.from('clients').upsert(inserts, { onConflict: 'code' });
+  if (error) { showToast('Импортод алдаа: ' + error.message, 'error'); return; }
+  showToast(`${inserts.length} харилцагч импортлогдлоо ✓`, 'success');
+  loadClients();
 }
 
 function parseCSVLine(line) {

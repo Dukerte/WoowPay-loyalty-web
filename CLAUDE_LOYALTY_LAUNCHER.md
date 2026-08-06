@@ -156,7 +156,7 @@ grant execute on function public.record_spin(text) to anon;
 
 | Field | Value |
 |---|---|
-| Email | enkhdulguun.amarbayasgalan@gmail.com |
+| Email | admin@woowpay.mn |
 | Password | (stored in password manager — not in this file) |
 
 > ⚠️ The password used to live here in plaintext. Since this file gets pasted into chat

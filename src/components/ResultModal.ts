@@ -17,9 +17,15 @@ function buildConfetti(): string {
 }
 
 
-function shareToFacebook() {
-  const fbUrl  = encodeURIComponent('https://loyalty.woowpay.mn');
-  const fbLink = `https://www.facebook.com/sharer/sharer.php?u=${fbUrl}`;
+function shareToFacebook(prize: Prize) {
+  // Share a small server-rendered page whose Open Graph tags show the
+  // actual prize (with its card image) instead of the generic
+  // homepage cover — Facebook's crawler doesn't run JS, so this has
+  // to be a real HTML response, not something rendered client-side.
+  const params = new URLSearchParams({ label: prize.label });
+  if (prize.id) params.set('prize', prize.id);
+  const shareUrl = `https://loyalty.woowpay.mn/api/share?${params}`;
+  const fbLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
   window.open(fbLink, '_blank', 'width=580,height=480,noopener,noreferrer');
 }
 
@@ -94,9 +100,10 @@ export function ResultModal(): {
   const doneBtn  = el.querySelector<HTMLButtonElement>('#rm-done')!;
 
   let currentCode = '';
+  let currentPrize: Prize | null = null;
   shareBtn.addEventListener('click', () => {
     logEvent('share_clicked', currentCode);
-    shareToFacebook();
+    if (currentPrize) shareToFacebook(currentPrize);
   });
 
   // X button always just closes (same as "Дуусгах" — won't spin again)
@@ -119,6 +126,7 @@ export function ResultModal(): {
     refreshConfetti();
 
     currentCode = code;
+    currentPrize = prize;
     receiptCodeEl.textContent = code;
     receiptDateEl.textContent = new Date().toLocaleString('mn-MN', {
       day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit',

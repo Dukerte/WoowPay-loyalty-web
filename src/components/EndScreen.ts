@@ -1,9 +1,14 @@
 import type { Prize } from '../types';
 import { logEvent } from '../data/analytics';
 
-function shareToFacebook() {
-  const fbUrl  = encodeURIComponent('https://loyalty.woowpay.mn');
-  const fbLink = `https://www.facebook.com/sharer/sharer.php?u=${fbUrl}`;
+function shareToFacebook(prize: Prize | undefined) {
+  const params = new URLSearchParams();
+  if (prize) {
+    params.set('label', prize.label);
+    if (prize.id) params.set('prize', prize.id);
+  }
+  const shareUrl = `https://loyalty.woowpay.mn/api/share?${params}`;
+  const fbLink = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
   window.open(fbLink, '_blank', 'width=580,height=480,noopener,noreferrer');
 }
 
@@ -38,7 +43,7 @@ export function EndScreen(won: Prize[], code: string, onRestart: () => void): HT
 
   el.querySelector<HTMLButtonElement>('#es-share')!.addEventListener('click', () => {
     logEvent('share_clicked', code);
-    shareToFacebook();
+    shareToFacebook(won[0]);
   });
   el.querySelector<HTMLButtonElement>('#es-restart')!.addEventListener('click', onRestart);
 

@@ -3,6 +3,7 @@ import { PRIZES } from './prizes';
 import type { Prize, UserType } from '../types';
 
 interface DbPrize {
+  id:          string;
   label:       string;
   short_label: string;
   emoji:       string;
@@ -32,6 +33,7 @@ export async function fetchPrizes(userType: UserType): Promise<Prize[]> {
     if (!rows.length) return fallback;
 
     return rows.map((r) => ({
+      id:         r.id,
       label:      r.label,
       shortLabel: r.short_label,
       emoji:      r.emoji,
