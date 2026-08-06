@@ -95,32 +95,52 @@ html, body {
   overflow: hidden;
   pointer-events: none;
   background:
-    radial-gradient(ellipse 80% 60% at 10% 0%,   #0B0A52 0%, transparent 55%),
-    radial-gradient(ellipse 60% 50% at 90% 100%,  #0B6BFF33 0%, transparent 52%),
-    radial-gradient(ellipse 50% 40% at 50% 50%,   #0B0A52 0%, transparent 70%),
+    radial-gradient(ellipse 90% 65% at 12% -5%,  #12138F 0%, transparent 58%),
+    radial-gradient(ellipse 70% 55% at 92% 105%, #0B6BFF4D 0%, transparent 55%),
+    radial-gradient(ellipse 60% 45% at 50% 45%,  #14126B 0%, transparent 72%),
     var(--navy);
+}
+
+/* Spotlight glow behind the card — the flat orbs alone read as a
+   solid color at a glance; this gives the scene an actual light
+   source and center of gravity instead. */
+.bg-spotlight {
+  position: absolute;
+  top: -10%;
+  left: 50%;
+  width: 900px;
+  height: 900px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(51,168,221,.22) 0%, rgba(11,107,255,.1) 38%, transparent 68%);
+  animation: spotlightPulse 7s ease-in-out infinite;
+}
+@keyframes spotlightPulse {
+  0%, 100% { opacity: .75; transform: translateX(-50%) scale(1); }
+  50%      { opacity: 1;   transform: translateX(-50%) scale(1.06); }
 }
 
 .bg-grid {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(255,255,255,.06) 1px, transparent 1px);
   background-size: 34px 34px;
   mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, black 0%, transparent 75%);
 }
 
 /* Brand watermark — the Woow Pay infinity-knot mark from the logo,
-   tiled faintly across the scene instead of a generic dot texture.
-   Kept extremely low-opacity so it reads as a subtle brand cue, not
-   decoration competing with the card. */
+   tiled across the scene instead of a generic dot texture. Reads as
+   a deliberate brand cue rather than decoration competing with the
+   card, but still visible enough to register (unlike a near-zero
+   opacity dusting). */
 .bg-mark {
   position: absolute;
   inset: -40px;
   background-image: url('/woow-mark.webp');
   background-repeat: repeat;
-  background-size: 220px auto;
+  background-size: 200px auto;
   background-position: 30px 20px;
-  opacity: .045;
+  opacity: .07;
   mask-image: radial-gradient(ellipse 85% 65% at 50% 25%, black 0%, transparent 78%);
 }
 
@@ -130,22 +150,28 @@ html, body {
   will-change: transform;
 }
 .bg-orb-1 {
-  width: 600px; height: 600px;
-  top: -260px; right: -200px;
-  background: radial-gradient(circle, rgba(51,168,221,.08) 0%, transparent 68%);
+  width: 640px; height: 640px;
+  top: -260px; right: -220px;
+  background: radial-gradient(circle, rgba(51,168,221,.14) 0%, transparent 68%);
   animation: drift 12s ease-in-out infinite alternate;
 }
 .bg-orb-2 {
-  width: 440px; height: 440px;
-  bottom: -200px; left: -140px;
-  background: radial-gradient(circle, rgba(51,168,221,.06) 0%, transparent 68%);
+  width: 480px; height: 480px;
+  bottom: -220px; left: -160px;
+  background: radial-gradient(circle, rgba(51,168,221,.11) 0%, transparent 68%);
   animation: drift 16s ease-in-out infinite alternate-reverse;
 }
 .bg-orb-3 {
-  width: 340px; height: 340px;
-  top: 40%; left: 50%;
-  background: radial-gradient(circle, rgba(11,107,255,.07) 0%, transparent 70%);
+  width: 380px; height: 380px;
+  top: 38%; left: 50%;
+  background: radial-gradient(circle, rgba(11,107,255,.13) 0%, transparent 70%);
   animation: drift 20s ease-in-out infinite alternate;
+}
+.bg-orb-4 {
+  width: 260px; height: 260px;
+  top: 8%; right: 8%;
+  background: radial-gradient(circle, rgba(255,212,59,.06) 0%, transparent 70%);
+  animation: drift 18s ease-in-out infinite alternate-reverse;
 }
 @keyframes drift {
   from { transform: translate(0,0); }
@@ -181,8 +207,8 @@ html, body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bg-orb, .bg-particles span, .ce-deco-ring, .ce-deco-badge,
-  .ce-gift-glow, .gb-closed, .gb-open, .ce-sparkle, .ce-btn, .ss-spin-btn {
+  .bg-orb, .bg-spotlight, .bg-particles span, .ce-deco-ring, .ce-deco-badge,
+  .ce-box-glow, .ce-box-img, .ce-sparkle, .ce-btn, .ss-spin-btn, .ce-owl-bubble {
     animation: none !important;
   }
 }
@@ -204,7 +230,10 @@ html, body {
 /* Logo */
 .ce-logo {
   width: 240px;
-  margin-bottom: 44px;
+  /* Gap sized to clear the gift-box backdrop + coin badge that poke
+     up above the card into this space (box pokes 90px, coin 56px —
+     110px leaves a buffer on both). */
+  margin-bottom: 110px;
   filter: drop-shadow(0 4px 24px rgba(51,168,221,.28));
   transition: filter .3s ease;
 }
@@ -252,74 +281,55 @@ html, body {
   animation: decoFloat 5s ease-in-out infinite;
   z-index: 1;
 }
-/* Hero gift box — real 3D render, two frames (closed/open) crossfaded
-   in an ambient loop so the "unwrapping" moment reads even on
-   mobile, which has no hover. Desktop pointer users get a bonus
-   speed-up + lift on :hover. */
-.ce-gift-hero {
+/* Box backdrop — big, real gift-box render sitting BEHIND the card
+   (z-index 0, card is 1), centered above it so the card visually
+   looks like it's emerging out of the open box. Because it's behind
+   the card by construction, it can never collide with card content
+   no matter how big it is — only the portion poking above the card's
+   top edge is ever visible over the background. */
+.ce-box-backdrop {
   position: absolute;
-  top: -18px;
-  right: -8px;
-  width: 132px;
-  height: 132px;
-  z-index: 1;
-  pointer-events: auto;
-  cursor: default;
+  top: -90px;
+  left: 50%;
+  width: 300px;
+  transform: translateX(-50%);
+  z-index: 0;
+  pointer-events: none;
+  animation: boxBackdropFloat 5s ease-in-out infinite;
 }
-.ce-gift-glow {
+.ce-box-glow {
   position: absolute;
-  inset: -20px;
+  left: 50%;
+  top: 36%;
+  width: 340px;
+  height: 340px;
+  transform: translate(-50%,-50%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(51,168,221,.45) 0%, rgba(11,107,255,.15) 45%, transparent 72%);
-  filter: blur(6px);
+  background: radial-gradient(circle, rgba(51,168,221,.5) 0%, rgba(11,107,255,.18) 45%, transparent 72%);
+  filter: blur(10px);
   animation: giftGlowPulse 3.4s ease-in-out infinite;
   z-index: -1;
 }
-.ce-gift-hero img {
-  position: absolute;
-  left: 50%;
-  filter: drop-shadow(0 18px 30px rgba(6,43,102,.45));
+.ce-box-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 22px 40px rgba(6,43,102,.5));
 }
-.gb-closed {
-  top: 22px;
-  width: 128px;
-  transform: translateX(-50%) rotate(-6deg);
-  animation: giftClosedCycle 6s ease-in-out infinite;
-}
-.gb-open {
-  top: 16px;
-  width: 96px;
-  opacity: 0;
-  transform: translateX(-50%) scale(.85);
-  animation: giftOpenCycle 6s ease-in-out infinite;
-}
-.ce-gift-hero:hover .gb-closed,
-.ce-gift-hero:hover .gb-open {
-  animation-duration: 2.2s;
-}
-.ce-gift-hero:hover {
-  filter: drop-shadow(0 0 18px rgba(51,168,221,.5));
-}
-
-@keyframes giftClosedCycle {
-  0%, 55%   { opacity: 1; transform: translateX(-50%) translateY(0)    rotate(-6deg) scale(1); }
-  68%       { opacity: 0; transform: translateX(-50%) translateY(-16px) rotate(4deg)  scale(.9); }
-  85%       { opacity: 0; transform: translateX(-50%) translateY(-16px) rotate(4deg)  scale(.9); }
-  100%      { opacity: 1; transform: translateX(-50%) translateY(0)    rotate(-6deg) scale(1); }
-}
-@keyframes giftOpenCycle {
-  0%, 55%   { opacity: 0; transform: translateX(-50%) scale(.8); }
-  70%       { opacity: 1; transform: translateX(-50%) scale(1.02); }
-  85%       { opacity: 1; transform: translateX(-50%) scale(1); }
-  100%      { opacity: 0; transform: translateX(-50%) scale(.85); }
+@keyframes boxBackdropFloat {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%      { transform: translateX(-50%) translateY(-9px); }
 }
 @keyframes giftGlowPulse {
-  0%, 100% { opacity: .55; transform: scale(1); }
-  50%      { opacity: 1;   transform: scale(1.12); }
+  0%, 100% { opacity: .55; transform: translate(-50%,-50%) scale(1); }
+  50%      { opacity: 1;   transform: translate(-50%,-50%) scale(1.1); }
 }
 .ce-deco-coin {
-  bottom: 40px;
-  left: -18px;
+  /* Floats beside the box, in the same logo-to-card gap — kept well
+     clear of the owl, the headline, and the box itself. */
+  top: -56px;
+  left: 14px;
+  bottom: auto;
   background: linear-gradient(135deg, #FFD43B 0%, #F2A93B 100%);
   color: #10213F;
   font-weight: 900;
@@ -352,13 +362,13 @@ html, body {
 }
 
 @media (max-width: 560px) {
+  .ce-logo { margin-bottom: 84px; }
   .ce-deco-ring { display: none; }
-  .ce-deco-badge { width: 40px; height: 40px; font-size: 1.1rem; border-radius: 12px; }
-  .ce-deco-coin { bottom: 28px; left: -10px; }
+  .ce-deco-badge { width: 36px; height: 36px; font-size: 1rem; border-radius: 11px; }
+  .ce-deco-coin { top: -40px; left: 10px; bottom: auto; }
   .ce-sparkle.s2 { right: 60px; }
-  .ce-gift-hero { width: 92px; height: 92px; top: -10px; right: -6px; }
-  .gb-closed { width: 88px; top: 16px; }
-  .gb-open   { width: 66px; top: 12px; }
+  .ce-box-backdrop { width: 200px; top: -58px; }
+  .ce-box-glow { width: 230px; height: 230px; }
 }
 
 /* Card */
@@ -387,48 +397,71 @@ html, body {
   align-items: flex-end;
 }
 
-/* Owl column — mascot + its speech bubble stacked above it, filling
-   the empty space that used to sit above the owl's head. */
+/* Owl column — mascot with a real chat bubble centered above its
+   head, tail pointing straight down at it, so the read is clearly
+   "the owl is saying this" rather than a caption floating nearby. */
 .ce-owl-col {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   flex-shrink: 0;
-  width: 188px;
+  width: 200px;
 }
 
 .ce-owl-bubble {
   position: relative;
-  background: var(--ice-blue);
-  border: 1px solid rgba(51,168,221,.2);
-  border-radius: 16px;
-  padding: 12px 14px 13px;
-  margin: 4px 0 10px 2px;
-  box-shadow: 0 6px 18px rgba(6,43,102,.08);
-  animation: fadeUp .5s cubic-bezier(.22,1,.36,1) .15s both;
+  width: 100%;
+  background: #fff;
+  border: 2px solid rgba(51,168,221,.35);
+  border-radius: 22px;
+  padding: 16px 18px 15px;
+  margin: 10px 0 8px;
+  box-shadow: 0 14px 32px rgba(6,43,102,.16), 0 2px 0 rgba(255,255,255,.6) inset;
+  animation: bubblePop .5s cubic-bezier(.34,1.56,.64,1) .15s both;
+}
+.ce-owl-bubble-badge {
+  position: absolute;
+  top: -16px;
+  left: -12px;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--cyan-dark-hover) 100%);
+  border-radius: 50%;
+  box-shadow: 0 8px 18px rgba(11,107,255,.4), 0 0 0 3px #fff;
+  transform: rotate(-12deg);
+  animation: decoFloat 3.2s ease-in-out infinite;
 }
 .ce-owl-bubble p {
-  font-size: .74rem;
-  line-height: 1.45;
+  font-size: .78rem;
+  line-height: 1.48;
   color: var(--text-navy);
   font-weight: 500;
+  text-align: center;
 }
 .ce-owl-bubble-cta {
-  margin-top: 6px;
+  margin-top: 7px;
   font-weight: 800;
   color: var(--cyan-dark);
 }
 .ce-owl-bubble-tail {
   position: absolute;
-  bottom: -8px;
-  left: 28px;
-  width: 16px;
-  height: 16px;
-  background: var(--ice-blue);
-  border-right: 1px solid rgba(51,168,221,.2);
-  border-bottom: 1px solid rgba(51,168,221,.2);
-  transform: rotate(45deg);
-  border-radius: 0 0 3px 0;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-right: 2px solid rgba(51,168,221,.35);
+  border-bottom: 2px solid rgba(51,168,221,.35);
+  border-radius: 0 0 4px 0;
+}
+@keyframes bubblePop {
+  from { opacity: 0; transform: translateY(14px) scale(.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Owl — mix-blend-mode:multiply removes white bg on white card */
@@ -1152,9 +1185,10 @@ canvas.spin-wheel {
 
 /* ─── Responsive ─────────────────────────────────────────── */
 @media (max-width: 420px) {
-  .ce-owl       { width: 130px; }
-  .ce-owl-col   { width: 138px; }
-  .ce-owl-bubble { padding: 10px 11px 11px; }
+  .ce-owl       { width: 128px; }
+  .ce-owl-col   { width: 148px; }
+  .ce-owl-bubble { padding: 12px 12px 11px; border-radius: 18px; }
+  .ce-owl-bubble-badge { width: 28px; height: 28px; font-size: .9rem; top: -13px; left: -10px; }
   .ce-owl-bubble p { font-size: .68rem; line-height: 1.4; }
   .ce-card-body { padding: 22px 22px 28px; }
   canvas.spin-wheel { width: 320px !important; height: 320px !important; }

@@ -14,13 +14,15 @@ export function CodeEntry(
     el.innerHTML = `
       <img src="/logo-white.png" class="ce-logo" alt="WoowPay" />
       <div class="ce-card-wrap">
+        <!-- Sits BEHIND the card (z-index below it) by construction, so
+             it can never collide with card content — the card visually
+             looks like it's emerging out of the open gift box. -->
+        <div class="ce-box-backdrop" aria-hidden="true">
+          <div class="ce-box-glow"></div>
+          <img src="/gift-box-open.webp" class="ce-box-img" alt="" />
+        </div>
         <div class="ce-deco" aria-hidden="true">
           <div class="ce-deco-ring"></div>
-          <div class="ce-gift-hero">
-            <div class="ce-gift-glow"></div>
-            <img src="/gift-box-open.webp" class="gb-open" alt="" />
-            <img src="/gift-box-closed.webp" class="gb-closed" alt="" />
-          </div>
           <div class="ce-deco-badge ce-deco-coin">₮</div>
           <span class="ce-sparkle s1">✦</span>
           <span class="ce-sparkle s2">✦</span>
@@ -32,8 +34,9 @@ export function CodeEntry(
         <div class="ce-card-body">
           <div class="ce-owl-col">
             <div class="ce-owl-bubble">
+              <span class="ce-owl-bubble-badge">🎁</span>
               <p>Та өөрийн эрхийн кодоо ашиглан хүрдээ эргүүлээд онцгой урамшууллуудын эзэн болоорой.</p>
-              <p class="ce-owl-bubble-cta">Танд амжилт хүсье. 🎁</p>
+              <p class="ce-owl-bubble-cta">Танд амжилт хүсье!</p>
               <span class="ce-owl-bubble-tail"></span>
             </div>
             <img src="/owl-pointing.webp" class="ce-owl" width="230" height="180" alt="" aria-hidden="true" />
