@@ -86,10 +86,24 @@ export function CodeEntry(
         </div>
         <div class="ce-signoff-contact">
           <a class="ce-signoff-social" href="https://facebook.com/woowpay" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
-            <img src="/icon-facebook.webp" alt="" width="44" height="44" />
+            <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
+              <circle cx="24" cy="24" r="24" fill="#1877F2"/>
+              <path d="M26.7 24.8h3.5l.6-4.3h-4.1v-2.6c0-1.3.3-2.2 2.2-2.2h2.1v-3.9c-.4-.1-1.7-.2-3.2-.2-3.2 0-5.4 2-5.4 5.6v3.3h-3.6v4.3h3.6V37h4.3V24.8z" fill="#fff"/>
+            </svg>
           </a>
           <a class="ce-signoff-social" href="https://m.me/woowpay" target="_blank" rel="noopener noreferrer" aria-label="Messenger">
-            <img src="/icon-messenger.webp" alt="" width="44" height="44" />
+            <svg viewBox="0 0 48 48" width="48" height="48" aria-hidden="true">
+              <defs>
+                <linearGradient id="msgrGrad" x1="8" y1="8" x2="40" y2="42" gradientUnits="userSpaceOnUse">
+                  <stop offset="0" stop-color="#4FC3F7"/>
+                  <stop offset=".5" stop-color="#2979FF"/>
+                  <stop offset="1" stop-color="#7C4DFF"/>
+                </linearGradient>
+              </defs>
+              <circle cx="24" cy="24" r="24" fill="url(#msgrGrad)"/>
+              <path d="M24 12.5c-6.9 0-12.2 4.9-12.2 11.7 0 3.8 1.7 7.2 4.7 9.4.3.2.4.5.4.9l.1 3c.1.9 1 1.4 1.8 1l3.3-1.4c.3-.1.6-.2.9-.1 1 .3 2 .4 3 .4 6.9 0 12.2-4.9 12.2-11.7S30.9 12.5 24 12.5z" fill="#fff"/>
+              <path d="M14.9 27.9l5.4-8.4c.5-.7 1.4-.8 2-.2l3.9 3 4.9-5.2c.6-.6 1.5.1 1.1.9l-5.4 8.4c-.5.7-1.4.8-2 .2l-3.9-3-4.9 5.2c-.6.7-1.6-.1-1.1-.9z" fill="url(#msgrGrad)"/>
+            </svg>
           </a>
           <a class="ce-signoff-qr" href="https://woow.mn" target="_blank" rel="noopener noreferrer">
             <img src="/app-qr.webp" width="64" height="64" alt="Апп татах QR код" />
