@@ -15,11 +15,16 @@ export function CodeEntry(
       <img src="/logo-white.png" class="ce-logo" alt="WoowPay" />
       <div class="ce-card-wrap">
         <!-- Sits BEHIND the card (z-index below it) by construction, so
-             it can never collide with card content — the card visually
-             looks like it's emerging out of the open gift box. -->
+             it can never collide with card content. The lid/cover (with
+             the bow) rests above the card; the open box body sits below,
+             fully visible, as if the card is the contents sitting inside
+             it with the lid lifted off. -->
         <div class="ce-box-backdrop ce-box-backdrop-top" aria-hidden="true">
           <div class="ce-box-glow"></div>
-          <img src="/gift-box-open.webp" class="ce-box-img" alt="" />
+          <img src="/gift-box-closed.webp" class="ce-box-img" alt="" />
+        </div>
+        <div class="ce-box-backdrop ce-box-backdrop-bottom" aria-hidden="true">
+          <img src="/gift-box-open.webp" class="ce-box-img ce-box-img-bottom" alt="" />
         </div>
         <div class="ce-deco" aria-hidden="true">
           <div class="ce-deco-ring"></div>

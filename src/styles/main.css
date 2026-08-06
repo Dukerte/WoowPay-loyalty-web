@@ -281,14 +281,16 @@ html, body {
   animation: decoFloat 5s ease-in-out infinite;
   z-index: 1;
 }
-/* Box backdrop — big, real gift-box render sitting BEHIND the card
-   (z-index 0, card is 1). Two copies of the same image: one anchored
-   by `top` so only ITS top edge (the lid/bow/opening) peeks above the
-   card, one anchored by `bottom` so only ITS bottom edge (the base)
-   peeks below — together they read as a single box the card sits
-   inside, top and bottom both visible, middle hidden behind the card.
-   Because both are behind the card by construction, neither can ever
-   collide with card content no matter the size. */
+/* Box backdrop — real gift-box renders sitting BEHIND the card
+   (z-index 0, card is 1), so neither piece can ever collide with card
+   content no matter the size.
+   Top piece: the closed box (lid + bow) peeking above the card, as if
+   it's the cover that was lifted off.
+   Bottom piece: the SAME rim crop used up top (the open box's top
+   edge), cropped via a fixed-height overflow:hidden window and
+   relocated just below the card — the box's own bottom is a fading
+   reflection, not a solid "base" shape, so reusing the rim reads far
+   better than showing that fade. */
 .ce-box-backdrop {
   position: absolute;
   left: 50%;
@@ -298,8 +300,14 @@ html, body {
   pointer-events: none;
   animation: boxBackdropFloat 5s ease-in-out infinite;
 }
-.ce-box-backdrop-top    { top: -90px; }
-.ce-box-backdrop-bottom { bottom: -84px; animation-delay: -2.5s; }
+.ce-box-backdrop-top { top: -90px; }
+.ce-box-backdrop-bottom {
+  top: 100%;
+  margin-top: -6px;
+  height: 90px;
+  overflow: hidden;
+  animation-delay: -2.5s;
+}
 .ce-box-glow {
   position: absolute;
   left: 50%;
@@ -372,7 +380,7 @@ html, body {
   .ce-sparkle.s2 { right: 60px; }
   .ce-box-backdrop { width: 200px; }
   .ce-box-backdrop-top    { top: -58px; }
-  .ce-box-backdrop-bottom { bottom: -54px; }
+  .ce-box-backdrop-bottom { top: 100%; margin-top: -4px; height: 58px; }
   .ce-box-glow { width: 230px; height: 230px; }
 }
 
