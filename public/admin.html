@@ -457,32 +457,45 @@
 // ══════════════════════════════════════════════════════════════
 //  CONFIG — stored in localStorage
 // ══════════════════════════════════════════════════════════════
+// ── Hardcoded defaults (safe: anon key is public, RLS protects data) ──
+const DEFAULT_URL = 'https://jamlxsllyqscxydkkwhe.supabase.co';
+const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphbWx4c2xseXFzY3h5ZGtrd2hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5NjY2MzEsImV4cCI6MjEwMTU0MjYzMX0.NwJ9IUfSIhpgMivFt517V2h4uD7mCyJWLxoPpYJ2_w4';
+
 const LS_URL  = 'wp_supa_url';
 const LS_KEY  = 'wp_supa_key';
 
 function getConfig() {
-  return {
-    url: document.getElementById('s-url')?.value.trim() || localStorage.getItem(LS_URL) || '',
-    key: document.getElementById('s-anon')?.value.trim() || localStorage.getItem(LS_KEY) || '',
-  };
+  let url, key;
+  try {
+    url = document.getElementById('s-url')?.value.trim() || localStorage.getItem(LS_URL) || DEFAULT_URL;
+    key = document.getElementById('s-anon')?.value.trim() || localStorage.getItem(LS_KEY) || DEFAULT_KEY;
+  } catch(e) {
+    url = DEFAULT_URL;
+    key = DEFAULT_KEY;
+  }
+  return { url, key };
 }
 function saveConfig() {
-  const url = document.getElementById('s-url').value.trim();
-  const key = document.getElementById('s-anon').value.trim();
-  if (!url || !key) { alert('URL болон Anon Key оруулна уу'); return; }
-  localStorage.setItem(LS_URL, url);
-  localStorage.setItem(LS_KEY, key);
+  const url = document.getElementById('s-url').value.trim() || DEFAULT_URL;
+  const key = document.getElementById('s-anon').value.trim() || DEFAULT_KEY;
+  try {
+    localStorage.setItem(LS_URL, url);
+    localStorage.setItem(LS_KEY, key);
+  } catch(e) { /* file:// blocks localStorage, that's ok */ }
   showToast('Тохиргоо хадгалагдлаа ✓', 'success');
   initSupabase(url, key);
 }
 
-// Pre-fill from localStorage
+// Pre-fill from localStorage (falls back to hardcoded defaults)
 window.addEventListener('DOMContentLoaded', () => {
-  const url = localStorage.getItem(LS_URL) || '';
-  const key = localStorage.getItem(LS_KEY) || '';
+  let url = DEFAULT_URL, key = DEFAULT_KEY;
+  try {
+    url = localStorage.getItem(LS_URL) || DEFAULT_URL;
+    key = localStorage.getItem(LS_KEY) || DEFAULT_KEY;
+  } catch(e) {}
   if (document.getElementById('s-url')) document.getElementById('s-url').value = url;
   if (document.getElementById('s-anon')) document.getElementById('s-anon').value = key;
-  if (url && key) initSupabase(url, key);
+  initSupabase(url, key); // always init on load
 
   // Enter key on login
   ['l-email','l-pass'].forEach(id => {
