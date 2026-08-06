@@ -69,10 +69,17 @@ export async function verifyPhoneRemote(code: string, phone: string): Promise<bo
 
 /**
  * Record a spin via the SECURITY DEFINER stored function.
+ * Passes the prize label so it gets logged in spin_results —
+ * without this, the DB has no record of what a client actually won.
  * Fire-and-forget — errors are silently ignored.
  */
-export async function recordSpin(code: string): Promise<void> {
+export async function recordSpin(code: string, prizeLabel: string): Promise<void> {
   if (!hasSupabase()) return;
-  try { await rpc('record_spin', { p_code: code.toUpperCase() }); }
+  try {
+    await rpc('record_spin', {
+      p_code:        code.toUpperCase(),
+      p_prize_label: prizeLabel,
+    });
+  }
   catch { /* ignore */ }
 }

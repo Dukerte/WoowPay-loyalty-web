@@ -92,7 +92,7 @@ export function SpinScreen(
     onResult(prize) {
       spinsUsed++;
       spinsLeft--;
-      recordSpin(code); // fire-and-forget Supabase update
+      recordSpin(code, prize.label); // fire-and-forget Supabase update + prize log
       renderHeader();
       updateLabel();
       if (spinsLeft <= 0) spinBtn.disabled = true;
