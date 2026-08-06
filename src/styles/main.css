@@ -207,7 +207,7 @@ html, body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bg-orb, .bg-spotlight, .bg-particles span, .ce-deco-ring, .ce-deco-badge,
+  .bg-orb, .bg-spotlight, .bg-particles span, .ce-deco-badge,
   .ce-box-backdrop, .ce-box-glow, .ce-sparkle, .ce-btn, .ss-spin-btn, .ce-owl-bubble {
     animation: none !important;
   }
@@ -260,15 +260,6 @@ html, body {
   pointer-events: none;
   overflow: visible;
 }
-.ce-deco-ring {
-  position: absolute;
-  top: 50%; left: 50%;
-  width: 115%; height: 115%;
-  transform: translate(-50%, -50%);
-  border: 1.5px dashed rgba(51,168,221,.22);
-  border-radius: 32px;
-  animation: decoSpin 50s linear infinite;
-}
 .ce-deco-badge {
   position: absolute;
   width: 56px; height: 56px;
@@ -298,15 +289,32 @@ html, body {
   transform: translateX(-50%);
   z-index: 0;
   pointer-events: none;
-  animation: boxBackdropFloat 5s ease-in-out infinite;
 }
-.ce-box-backdrop-top { top: -90px; }
+.ce-box-backdrop-top {
+  top: -90px;
+  /* No mask needed here — this piece is hidden by the opaque card
+     itself (z-index), not by a hard overflow crop, so there's no
+     visible seam to soften. */
+  /* Settles into place once on load (drop + ease, like it just landed),
+     then hands off to the ambient float — sequenced so the two never
+     fight over the transform property at the same time. */
+  animation: boxSettle .6s cubic-bezier(.34,1.56,.64,1) both,
+             boxBackdropFloat 5s ease-in-out infinite .6s;
+}
 .ce-box-backdrop-bottom {
   top: 100%;
   margin-top: -6px;
-  height: 90px;
+  height: 96px;
   overflow: hidden;
-  animation-delay: -2.5s;
+  /* Same idea in reverse — fades the crop out instead of cutting it
+     off with a hard horizontal line. */
+  mask-image: linear-gradient(to bottom, black 0%, black 68%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 68%, transparent 100%);
+  /* Settles slightly after the top piece for a natural cascade, and
+     floats on a different cycle length so the two drift out of sync
+     over time instead of moving in lockstep. */
+  animation: boxSettle .6s cubic-bezier(.34,1.56,.64,1) .15s both,
+             boxBackdropFloat 5.6s ease-in-out infinite .75s;
 }
 .ce-box-glow {
   position: absolute;
@@ -326,6 +334,10 @@ html, body {
   width: 100%;
   height: auto;
   filter: drop-shadow(0 22px 40px rgba(6,43,102,.5));
+}
+@keyframes boxSettle {
+  from { opacity: 0; transform: translateX(-50%) translateY(-36px) scale(.82); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0)     scale(1);   }
 }
 @keyframes boxBackdropFloat {
   0%, 100% { transform: translateX(-50%) translateY(0); }
@@ -363,10 +375,6 @@ html, body {
   0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
   50%      { transform: translateY(-10px) rotate(var(--r, 0deg)); }
 }
-@keyframes decoSpin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
 @keyframes decoTwinkle {
   0%, 100% { opacity: .25; transform: scale(.85); }
   50%      { opacity: 1;   transform: scale(1.15); }
@@ -374,7 +382,6 @@ html, body {
 
 @media (max-width: 560px) {
   .ce-logo { margin-bottom: 84px; }
-  .ce-deco-ring { display: none; }
   .ce-deco-badge { width: 36px; height: 36px; font-size: 1rem; border-radius: 11px; }
   .ce-deco-coin { top: -40px; left: 10px; bottom: auto; }
   .ce-sparkle.s2 { right: 60px; }
