@@ -1,7 +1,8 @@
-/* Rubik (headlines/UI) + Roboto (body) are loaded via <link> in
-   index.html (not @import here) — @import is render-blocking and
-   adds an extra network round trip before the browser even
-   discovers the font request. Per official brand book LG.10. */
+/* Rubik is used across the whole site (headlines, UI, and body copy)
+   for a single consistent typographic voice — loaded via <link> in
+   index.html (not @import here) since @import is render-blocking and
+   adds an extra network round trip before the browser even discovers
+   the font request. */
 
 /* ─── Reset ─────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,7 +18,7 @@
 ──────────────────────────────────────────────────────────── */
 :root {
   --font-display: 'Rubik', 'Noto Sans', system-ui, sans-serif;
-  --font-body:    'Roboto', 'Noto Sans', system-ui, sans-serif;
+  --font-body:    'Rubik', 'Noto Sans', system-ui, sans-serif;
 
   --navy:      #030132; /* official Midnight Navy */
   --navy-2:    #0B0A52; /* lifted navy (gradients) */
@@ -333,16 +334,19 @@ html, body {
              boxBackdropFloat 5s ease-in-out infinite .6s;
 }
 .ce-box-backdrop-bottom {
-  /* Box is ~334px tall at this width; the solid box (no reflection)
-     runs to about 303px, so the window stops right there — the whole
-     box shows, none of the fading reflection does. Tucked slightly
-     under the card for a connected look. */
+  /* The open-box source image is a box render sitting ABOVE a full
+     mirrored reflection of itself (a real inverted duplicate, not a
+     fading edge) — the reflection starts right where the box's own
+     bottom rim ends, around 54% down the source image. Showing any of
+     it reads as a smeared "broken" duplicate box, so the crop stops
+     exactly at the rim (162px of 300px width) — box only, zero
+     reflection. Tucked slightly under the card for a connected look. */
   top: 100%;
   margin-top: -16px;
-  height: 303px;
+  height: 162px;
   overflow: hidden;
-  mask-image: linear-gradient(to bottom, black 0%, black 96%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 96%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 0%, black 92%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 92%, transparent 100%);
   animation: boxSettle .6s cubic-bezier(.34,1.56,.64,1) .15s both,
              boxBackdropFloat 5.6s ease-in-out infinite .75s;
 }
@@ -414,7 +418,7 @@ html, body {
   .ce-sparkle.s2 { right: 60px; }
   .ce-box-backdrop { width: 200px; }
   .ce-box-backdrop-top    { top: -117px; }
-  .ce-box-backdrop-bottom { top: 100%; margin-top: -10px; height: 202px; }
+  .ce-box-backdrop-bottom { top: 100%; margin-top: -10px; height: 108px; }
   .ce-box-glow { width: 230px; height: 230px; }
 }
 
