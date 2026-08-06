@@ -189,7 +189,7 @@ html, body {
 /* Logo */
 .ce-logo {
   width: 240px;
-  margin-bottom: 28px;
+  margin-bottom: 44px;
   filter: drop-shadow(0 4px 24px rgba(51,168,221,.28));
   transition: filter .3s ease;
 }
@@ -238,8 +238,8 @@ html, body {
    speed-up + lift on :hover. */
 .ce-gift-hero {
   position: absolute;
-  top: -46px;
-  right: -30px;
+  top: -18px;
+  right: -8px;
   width: 132px;
   height: 132px;
   z-index: 1;
@@ -336,7 +336,7 @@ html, body {
   .ce-deco-badge { width: 40px; height: 40px; font-size: 1.1rem; border-radius: 12px; }
   .ce-deco-coin { bottom: 28px; left: -10px; }
   .ce-sparkle.s2 { right: 60px; }
-  .ce-gift-hero { width: 92px; height: 92px; top: -30px; right: -14px; }
+  .ce-gift-hero { width: 92px; height: 92px; top: -10px; right: -6px; }
   .gb-closed { width: 82px; }
   .gb-open   { width: 92px; top: 32px; }
 }

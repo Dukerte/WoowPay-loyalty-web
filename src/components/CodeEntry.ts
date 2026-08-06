@@ -18,8 +18,8 @@ export function CodeEntry(
           <div class="ce-deco-ring"></div>
           <div class="ce-gift-hero">
             <div class="ce-gift-glow"></div>
-            <img src="/gift-box-open.webp" class="gb-open" alt="" />
-            <img src="/gift-box-closed.webp" class="gb-closed" alt="" />
+            <img src="/gift-box-open.svg" class="gb-open" alt="" />
+            <img src="/gift-box-closed.svg" class="gb-closed" alt="" />
           </div>
           <div class="ce-deco-badge ce-deco-coin">₮</div>
           <span class="ce-sparkle s1">✦</span>
