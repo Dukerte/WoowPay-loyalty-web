@@ -39,16 +39,16 @@ export function CodeEntry(
           <div class="ce-owl-col">
             <div class="ce-owl-bubble">
               <span class="ce-owl-bubble-badge">🎁</span>
-              <p>Та өөрийн эрхийн кодоо ашиглан хүрдээ эргүүлээд онцгой урамшууллуудын эзэн болоорой.</p>
-              <p class="ce-owl-bubble-cta">Танд амжилт хүсье!</p>
+              <p>Хүрдээ эргүүлээд онцгой урамшууллуудын эзэн болоорой.</p>
+              <p class="ce-owl-bubble-cta">Танд амжилт хүсье! ❤️</p>
               <span class="ce-owl-bubble-tail"></span>
             </div>
             <img src="/owl-pointing.webp" class="ce-owl ce-owl-flip" width="230" height="180" alt="" aria-hidden="true" />
           </div>
           <div class="ce-form ce-step">
-            <p class="ce-eyebrow">WOOW PAY · УРАМШУУЛАЛ</p>
+            <p class="ce-eyebrow">WOOW PAY · УРАМШУУЛЛЫН ХҮРД</p>
             <h1 class="ce-title">Азаа туршаарай!</h1>
-            <p class="ce-sub">Эрхийн кодоо оруулаад<br/>хүрдийг эргүүлнэ үү 🎰</p>
+            <p class="ce-sub">Эрхийн кодоо оруулан, шалгах товчыг дарж<br/>үргэлжүүлнэ үү.</p>
 
             <div class="ce-input-wrap">
               <input id="code-input" type="text" maxlength="9"
@@ -85,11 +85,14 @@ export function CodeEntry(
           <img src="/heart-accent.webp" class="ce-signoff-heart" alt="" aria-hidden="true" />
         </div>
         <div class="ce-signoff-contact">
-          <a class="ce-signoff-fb" href="https://facebook.com/woowpay" target="_blank" rel="noopener noreferrer">
-            <span class="ce-signoff-fb-icon">f</span> facebook.com/woowpay
+          <a class="ce-signoff-social" href="https://facebook.com/woowpay" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+            <img src="/icon-facebook.webp" alt="" width="44" height="44" />
+          </a>
+          <a class="ce-signoff-social" href="https://m.me/woowpay" target="_blank" rel="noopener noreferrer" aria-label="Messenger">
+            <img src="/icon-messenger.webp" alt="" width="44" height="44" />
           </a>
           <a class="ce-signoff-qr" href="https://woow.mn" target="_blank" rel="noopener noreferrer">
-            <img src="/app-qr.webp" width="44" height="44" alt="Апп татах QR код" />
+            <img src="/app-qr.webp" width="64" height="64" alt="Апп татах QR код" />
             <span>Апп татах</span>
           </a>
         </div>
