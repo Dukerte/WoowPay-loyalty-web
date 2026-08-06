@@ -135,6 +135,90 @@ html, body {
 }
 .ce-logo:hover { filter: drop-shadow(0 4px 32px rgba(51,168,221,.5)); }
 
+/* ── Decorative layer: floating gift/coin badges, sparkles, and a
+   dashed "wheel" ring — the exciting-loyalty-portal feel, kept to
+   brand colors (no gaudy off-brand gradients, yellow used exactly
+   once as the spice accent). Sits behind/around the card, never
+   blocking it (pointer-events: none). ────────────────────────── */
+.ce-card-wrap {
+  position: relative;
+  width: 100%;
+}
+.ce-deco {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+.ce-deco-ring {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 115%; height: 115%;
+  transform: translate(-50%, -50%);
+  border: 1.5px dashed rgba(51,168,221,.22);
+  border-radius: 32px;
+  animation: decoSpin 50s linear infinite;
+}
+.ce-deco-badge {
+  position: absolute;
+  width: 56px; height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  box-shadow: 0 12px 28px rgba(6,43,102,.45), inset 0 1px 0 rgba(255,255,255,.25);
+  animation: decoFloat 5s ease-in-out infinite;
+  z-index: 1;
+}
+.ce-deco-gift {
+  top: -18px;
+  right: -14px;
+  background: linear-gradient(135deg, var(--cyan) 0%, var(--cyan-dark) 100%);
+  transform: rotate(-10deg);
+}
+.ce-deco-coin {
+  bottom: 40px;
+  left: -18px;
+  background: linear-gradient(135deg, #FFD43B 0%, #F2A93B 100%);
+  color: #10213F;
+  font-weight: 900;
+  font-family: var(--font-display);
+  animation-delay: 1.2s;
+  transform: rotate(8deg);
+}
+.ce-sparkle {
+  position: absolute;
+  color: rgba(255,255,255,.85);
+  font-size: 1rem;
+  animation: decoTwinkle 2.6s ease-in-out infinite;
+}
+.ce-sparkle.s1 { top: -10px; left: 40px; animation-delay: 0s; }
+.ce-sparkle.s2 { top: -22px; right: 90px; font-size: .75rem; animation-delay: .8s; color: #FFD43B; }
+.ce-sparkle.s3 { bottom: 30px; right: -16px; animation-delay: 1.6s; }
+
+@keyframes decoFloat {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50%      { transform: translateY(-10px) rotate(var(--r, 0deg)); }
+}
+@keyframes decoSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes decoTwinkle {
+  0%, 100% { opacity: .25; transform: scale(.85); }
+  50%      { opacity: 1;   transform: scale(1.15); }
+}
+
+@media (max-width: 560px) {
+  .ce-deco-ring { display: none; }
+  .ce-deco-badge { width: 40px; height: 40px; font-size: 1.1rem; border-radius: 12px; }
+  .ce-deco-gift { top: -10px; right: -8px; }
+  .ce-deco-coin { bottom: 28px; left: -10px; }
+  .ce-sparkle.s2 { right: 60px; }
+}
+
 /* Card */
 .ce-card {
   width: 100%;
@@ -273,7 +357,9 @@ html, body {
   overflow: hidden;
   transition: var(--transition), box-shadow .2s;
   will-change: transform;
+  animation: pulse-idle 2.5s ease-in-out infinite;
 }
+.ce-btn:hover { animation: none; }
 .ce-btn::after {
   content: '';
   position: absolute;

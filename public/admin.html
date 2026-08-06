@@ -371,7 +371,7 @@
             <th>Эргэлт</th>
             <th>Статус</th>
             <th>Сүүлд эргүүлсэн</th>
-            <th>Сүүлд хожсон</th>
+            <th>Хонжвор</th>
             <th>Үйлдэл</th>
           </tr>
         </thead>
@@ -643,10 +643,10 @@ function switchView(view) {
 //  CLIENTS DATA
 // ══════════════════════════════════════════════════════════════
 let allClients   = [];
-let filteredList = [];
+let filteredList = []; // list of { client, prize } rows — one per spin, or one with prize:null if never spun
 let currentPage  = 1;
 const PAGE_SIZE  = 20;
-let latestPrizeByClient = {}; // client_id -> { label, won_at, fulfilled }
+let prizesByClient = {}; // client_id -> [{ label, wonAt, fulfilled }, ...] newest first
 
 async function loadClients() {
   if (!sbClient) return;
@@ -658,17 +658,17 @@ async function loadClients() {
   if (error) { showToast('Өгөгдөл татахад алдаа гарлаа', 'error'); return; }
   allClients = data || [];
 
-  // Latest prize per client, so it's visible in the table at a glance
-  // instead of only behind the 🎁 history button.
+  // All prizes per client (not just latest) — a client who spun N
+  // times shows as N rows in the table, one per spin.
   const { data: results } = await sbClient
     .from('spin_results')
     .select('client_id, prize_label, won_at, fulfilled')
     .order('won_at', { ascending: false });
-  latestPrizeByClient = {};
+  prizesByClient = {};
   (results || []).forEach(r => {
-    if (r.client_id && !latestPrizeByClient[r.client_id]) {
-      latestPrizeByClient[r.client_id] = { label: r.prize_label, wonAt: r.won_at, fulfilled: r.fulfilled };
-    }
+    if (!r.client_id) return;
+    (prizesByClient[r.client_id] = prizesByClient[r.client_id] || [])
+      .push({ label: r.prize_label, wonAt: r.won_at, fulfilled: r.fulfilled });
   });
 
   updateStats();
@@ -690,7 +690,7 @@ function filterClients() {
   const type = document.getElementById('filter-type').value;
   const stat = document.getElementById('filter-status').value;
 
-  filteredList = allClients.filter(c => {
+  const matchingClients = allClients.filter(c => {
     const matchQ = !q || (c.name||'').toLowerCase().includes(q)
                       || (c.phone||'').includes(q)
                       || (c.code||'').toLowerCase().includes(q);
@@ -698,6 +698,20 @@ function filterClients() {
     const matchS = stat === '' || String(c.enabled) === stat;
     return matchQ && matchT && matchS;
   });
+
+  // Expand each client into one row per spin (or one empty-prize row
+  // if they've never spun), so multi-spin clients show as duplicated
+  // rows with their respective prize on each.
+  filteredList = [];
+  matchingClients.forEach(c => {
+    const prizes = prizesByClient[c.id];
+    if (prizes && prizes.length) {
+      prizes.forEach(p => filteredList.push({ client: c, prize: p }));
+    } else {
+      filteredList.push({ client: c, prize: null });
+    }
+  });
+
   currentPage = 1;
   renderTable();
 }
@@ -723,12 +737,13 @@ function renderTable() {
     return;
   }
 
-  tbody.innerHTML = slice.map(c => {
+  tbody.innerHTML = slice.map(row => {
+    const c = row.client;
+    const prize = row.prize;
     const pct  = c.spins > 0 ? Math.min(100, Math.round((c.spins_used / c.spins) * 100)) : 0;
     const date = c.last_spin_at
       ? new Date(c.last_spin_at).toLocaleDateString('mn-MN')
       : '—';
-    const prize = latestPrizeByClient[c.id];
     const prizeCell = prize
       ? `${esc(prize.label)} <span class="badge ${prize.fulfilled ? 'badge-on' : 'badge-wait'}" style="margin-left:4px">${prize.fulfilled ? 'Олгосон' : 'Хүлээгдэж буй'}</span>`
       : '<span style="color:var(--muted)">—</span>';
@@ -1056,19 +1071,25 @@ async function deletePrize(id, label) {
 // ══════════════════════════════════════════════════════════════
 //  CSV/XLSX IMPORT / EXPORT (clients) — uses SheetJS (window.XLSX)
 // ══════════════════════════════════════════════════════════════
-const EXPORT_HEADERS = ['Нэр','Утас','Код','Төрөл','Эргэлт','Ашигласан','Идэвхтэй','Сүүлд хожсон шагнал','Олгосон эсэх','Тэмдэглэл'];
+const EXPORT_HEADERS = ['Нэр','Утас','Код','Төрөл','Эргэлт','Ашигласан','Идэвхтэй','Хонжвор','Олгосон эсэх','Тэмдэглэл'];
 
+/** One row per spin (same expansion as the on-screen table) — a
+    client who spun 3 times exports as 3 rows, each with that spin's
+    prize, so nothing gets collapsed/lost in the report. */
 function buildExportRows() {
   const rows = [EXPORT_HEADERS];
   allClients.forEach(c => {
-    const prize = latestPrizeByClient[c.id];
-    rows.push([
-      c.name, c.phone, c.code, c.user_type, c.spins, c.spins_used,
-      c.enabled ? 'тийм' : 'үгүй',
-      prize ? prize.label : '',
-      prize ? (prize.fulfilled ? 'тийм' : 'үгүй') : '',
-      c.notes || ''
-    ]);
+    const prizes = prizesByClient[c.id];
+    const list = (prizes && prizes.length) ? prizes : [null];
+    list.forEach(prize => {
+      rows.push([
+        c.name, c.phone, c.code, c.user_type, c.spins, c.spins_used,
+        c.enabled ? 'тийм' : 'үгүй',
+        prize ? prize.label : '',
+        prize ? (prize.fulfilled ? 'тийм' : 'үгүй') : '',
+        c.notes || ''
+      ]);
+    });
   });
   return rows;
 }
