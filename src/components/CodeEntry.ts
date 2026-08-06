@@ -27,12 +27,12 @@ export function CodeEntry(
           <img src="/gift-box-open.webp" class="ce-box-img" alt="" />
         </div>
         <div class="ce-deco" aria-hidden="true">
-          <div class="ce-deco-badge ce-deco-coin">₮</div>
           <span class="ce-sparkle s1">✦</span>
           <span class="ce-sparkle s2">✦</span>
           <span class="ce-sparkle s3">✦</span>
           <span class="ce-sparkle s4">✦</span>
         </div>
+        <div class="ce-card-glow" aria-hidden="true"></div>
         <div class="ce-card">
         <div class="ce-card-bar"></div>
         <div class="ce-card-body">
