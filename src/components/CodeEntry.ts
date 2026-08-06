@@ -24,7 +24,7 @@ export function CodeEntry(
           <img src="/gift-box-closed.webp" class="ce-box-img" alt="" />
         </div>
         <div class="ce-box-backdrop ce-box-backdrop-bottom" aria-hidden="true">
-          <img src="/gift-box-open.webp" class="ce-box-img ce-box-img-bottom" alt="" />
+          <img src="/gift-box-open.webp" class="ce-box-img" alt="" />
         </div>
         <div class="ce-deco" aria-hidden="true">
           <div class="ce-deco-badge ce-deco-coin">₮</div>
@@ -81,7 +81,21 @@ export function CodeEntry(
     const showErr  = (m: string) => { errEl.textContent = m; input.classList.add('invalid'); btn.disabled = false; btn.textContent = 'Шалгах →'; };
     const clearErr = () => { errEl.textContent = ''; input.classList.remove('invalid'); };
 
-    input.addEventListener('input', () => { input.value = formatCodeInput(input.value); clearErr(); });
+    input.addEventListener('input', () => {
+      // Reassigning .value on every keystroke (needed to auto-insert the
+      // dash and uppercase as you type) resets the caret unless we track
+      // and restore it ourselves — otherwise fast typing, editing mid-
+      // string, or programmatic input can land the cursor in the wrong
+      // place and garble what's typed next (e.g. "WM--AB001").
+      const caret  = input.selectionStart ?? input.value.length;
+      const before = input.value.length;
+      const formatted = formatCodeInput(input.value);
+      const delta = formatted.length - before;
+      input.value = formatted;
+      const pos = Math.min(formatted.length, Math.max(0, caret + delta));
+      input.setSelectionRange(pos, pos);
+      clearErr();
+    });
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') btn.click(); });
 
     btn.addEventListener('click', async () => {
@@ -151,7 +165,13 @@ export function CodeEntry(
     const clearErr = () => { phoneErr.textContent = ''; phoneInput.classList.remove('invalid'); };
 
     phoneInput.addEventListener('input', () => {
-      phoneInput.value = phoneInput.value.replace(/\D/g, '').slice(0, 8);
+      const caret  = phoneInput.selectionStart ?? phoneInput.value.length;
+      const before = phoneInput.value.length;
+      const formatted = phoneInput.value.replace(/\D/g, '').slice(0, 8);
+      const delta = formatted.length - before;
+      phoneInput.value = formatted;
+      const pos = Math.min(formatted.length, Math.max(0, caret + delta));
+      phoneInput.setSelectionRange(pos, pos);
       clearErr();
     });
     phoneInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') phoneBtn.click(); });
