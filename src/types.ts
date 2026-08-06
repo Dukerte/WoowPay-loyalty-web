@@ -6,6 +6,7 @@ export interface Prize {
   emoji: string;
   desc:  string;
   color: string;
+  weight?: number; // relative odds weight; defaults to 1 (equal chance) if omitted
 }
 
 export interface SpinHistoryEntry {

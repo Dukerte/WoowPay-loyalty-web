@@ -1,5 +1,4 @@
-import type { UserType } from '../types';
-import { PRIZES } from '../data/prizes';
+import type { Prize, UserType } from '../types';
 import { SpinWheel } from './SpinWheel';
 import { ResultModal } from './ResultModal';
 import { recordSpin } from '../data/clientService';
@@ -9,9 +8,9 @@ export function SpinScreen(
   code: string,
   totalSpins: number,
   phone: string,
+  prizes: Prize[],
   onDone: () => void
 ): HTMLElement {
-  const prizes     = PRIZES[userType];
   const el         = document.createElement('div');
   el.className     = 'spin-screen';
 

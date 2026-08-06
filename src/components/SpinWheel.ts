@@ -9,6 +9,24 @@ interface SpinWheelOptions {
 const SIZE = 380;
 const POINTER_ANGLE = 3 * Math.PI / 2; // 12 o'clock (top of wheel)
 
+/**
+ * Weighted random pick over prize.weight (defaults to 1 → equal odds,
+ * matching the previous uniform Math.random() * N behavior when no
+ * weights are set).
+ */
+function pickWeightedIndex(prizes: Prize[]): number {
+  const weights = prizes.map((p) => Math.max(0, p.weight ?? 1));
+  const total = weights.reduce((s, w) => s + w, 0);
+  if (total <= 0) return Math.floor(Math.random() * prizes.length);
+
+  let r = Math.random() * total;
+  for (let i = 0; i < weights.length; i++) {
+    r -= weights[i];
+    if (r < 0) return i;
+  }
+  return weights.length - 1; // floating-point safety net
+}
+
 export function SpinWheel({ prizes, onResult }: SpinWheelOptions): {
   el: HTMLCanvasElement;
   spin: () => void;
@@ -140,7 +158,7 @@ export function SpinWheel({ prizes, onResult }: SpinWheelOptions): {
     audioEngine.resume();
     audioEngine.resetSegment();
 
-    const targetIndex  = Math.floor(Math.random() * N);
+    const targetIndex  = pickWeightedIndex(prizes);
     const extra        = 8 + Math.floor(Math.random() * 5);
 
     // ── FIXED: aim the pointer (12 o'clock) at the target segment ──

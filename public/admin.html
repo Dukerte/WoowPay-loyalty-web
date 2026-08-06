@@ -85,7 +85,15 @@
     position: sticky; top: 0; z-index: 100;
   }
   .topbar-logo { height: 32px; }
-  .topbar-title { font-size: 0.9rem; font-weight: 600; color: var(--cyan); flex: 1; }
+  .topbar-title { font-size: 0.9rem; font-weight: 600; color: var(--cyan); }
+  .topbar-tabs { display: flex; gap: 6px; flex: 1; margin-left: 8px; }
+  .topbar-tab {
+    padding: 7px 14px; background: transparent; border: 1px solid var(--border);
+    border-radius: 8px; color: var(--muted); font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; transition: background .2s, color .2s, border-color .2s;
+  }
+  .topbar-tab:hover { color: var(--text); }
+  .topbar-tab.active { background: var(--cyan); border-color: var(--cyan); color: #000; }
   .topbar-user  { font-size: 0.78rem; color: var(--muted); }
   .btn-logout {
     padding: 7px 14px; background: transparent;
@@ -125,12 +133,11 @@
     padding: 9px 16px; border-radius: 9px; font-size: 0.82rem;
     font-weight: 600; cursor: pointer; border: 1px solid var(--border);
     transition: background .2s, border-color .2s;
+    background: var(--card); color: var(--text);
   }
   .btn-add    { background: var(--cyan); color: #000; border-color: var(--cyan); }
   .btn-add:hover { background: var(--cyan2); }
-  .btn-import { background: var(--card); color: var(--text); }
   .btn-import:hover { border-color: var(--cyan); }
-  .btn-export { background: var(--card); color: var(--text); }
   .btn-export:hover { border-color: var(--green); }
   .filter-sel {
     padding: 9px 14px; background: var(--card);
@@ -157,6 +164,7 @@
   .badge-client   { background: rgba(41,189,224,.18); color: var(--cyan); }
   .badge-on  { background: rgba(16,185,129,.18); color: var(--green); }
   .badge-off { background: rgba(239,68,68,.15);  color: var(--red); }
+  .badge-wait { background: rgba(245,158,11,.18); color: var(--amber); }
   .spins-bar {
     display: flex; align-items: center; gap: 8px;
   }
@@ -177,6 +185,7 @@
   .btn-icon.danger:hover { border-color: var(--red); color: var(--red); }
   .btn-icon.success:hover { border-color: var(--green); color: var(--green); }
   .empty-row td { text-align: center; color: var(--muted); padding: 48px; }
+  .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 6px; vertical-align: middle; border: 1px solid var(--border); }
 
   /* Modal */
   .modal-overlay {
@@ -203,6 +212,7 @@
   .form-row select option { background: var(--navy2); }
   .form-row textarea { resize: vertical; min-height: 70px; }
   .form-row .hint { font-size: 0.72rem; color: var(--muted); margin-top: 5px; }
+  .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .code-gen-row { display: flex; gap: 8px; }
   .code-gen-row input { flex: 1; }
   .btn-gen {
@@ -242,17 +252,6 @@
   .toast.success { background: var(--green); color: #fff; }
   .toast.error   { background: var(--red);   color: #fff; }
 
-  /* Config display */
-  .config-box {
-    background: rgba(0,0,0,.3); border: 1px solid var(--border);
-    border-radius: 10px; padding: 16px; font-size: 0.82rem;
-    color: var(--muted); margin: 0 24px 20px;
-    display: none;
-  }
-  .config-box.show { display: block; }
-  .config-box strong { color: var(--cyan); display: block; margin-bottom: 8px; }
-  .config-box code { display: block; margin: 4px 0; word-break: break-all; }
-
   /* Pagination */
   .pagination {
     display: flex; align-items: center; justify-content: flex-end; gap: 8px;
@@ -266,9 +265,12 @@
   .page-btn:disabled { opacity: .4; cursor: default; }
   .page-btn:hover:not(:disabled) { border-color: var(--cyan); }
 
+  .view { display: none; }
+  .view.active { display: block; }
+
   @media (max-width: 600px) {
-    .topbar { padding: 12px 16px; }
-    .stats-row, .toolbar, .table-wrap, .config-box, .pagination { padding-left: 16px; padding-right: 16px; }
+    .topbar { padding: 12px 16px; flex-wrap: wrap; }
+    .stats-row, .toolbar, .table-wrap, .pagination { padding-left: 16px; padding-right: 16px; }
   }
 </style>
 </head>
@@ -290,27 +292,6 @@
     </div>
     <button class="btn-primary" id="l-btn">Нэвтрэх</button>
     <div class="login-err" id="l-err"></div>
-
-    <!-- First-time setup hint -->
-    <details style="margin-top:24px;text-align:left;">
-      <summary style="font-size:.78rem;color:var(--muted);cursor:pointer;">⚙️ Тохиргоо / Setup</summary>
-      <div style="margin-top:12px;font-size:.78rem;color:var(--muted);line-height:1.6;">
-        <p style="margin-bottom:8px;">Supabase тохиргоо хийгээгүй бол доорхи мэдээллийг оруулна уу:</p>
-        <div style="margin-bottom:8px;">
-          <label style="display:block;margin-bottom:4px;color:var(--cyan)">Supabase URL</label>
-          <input type="text" id="s-url" placeholder="https://xxxx.supabase.co"
-            style="width:100%;padding:9px;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.82rem;outline:none;" />
-        </div>
-        <div style="margin-bottom:8px;">
-          <label style="display:block;margin-bottom:4px;color:var(--cyan)">Anon Key</label>
-          <input type="text" id="s-anon" placeholder="eyJhbGciOi..."
-            style="width:100%;padding:9px;background:rgba(255,255,255,.07);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:.82rem;outline:none;" />
-        </div>
-        <button onclick="saveConfig()" style="padding:8px 16px;background:var(--cyan);color:#000;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:.82rem;">
-          Хадгалах
-        </button>
-      </div>
-    </details>
   </div>
 </div>
 
@@ -320,88 +301,116 @@
   <div class="topbar">
     <img src="https://loyalty.woowpay.mn/logo-white.png" class="topbar-logo" alt="WoowPay" onerror="this.style.display='none'" />
     <div class="topbar-title">Loyalty Admin</div>
+    <div class="topbar-tabs">
+      <button class="topbar-tab active" id="tab-clients" onclick="switchView('clients')">👥 Клиентүүд</button>
+      <button class="topbar-tab" id="tab-prizes" onclick="switchView('prizes')">🎡 Шагнал ба магадлал</button>
+    </div>
     <span class="topbar-user" id="topbar-user"></span>
     <button class="btn-logout" onclick="logout()">Гарах</button>
   </div>
 
-  <!-- Stats -->
-  <div class="stats-row">
-    <div class="stat-card">
-      <div class="stat-label">Нийт клиент</div>
-      <div class="stat-val" id="s-total">–</div>
+  <!-- ══ CLIENTS VIEW ═══════════════════════════════════════════ -->
+  <div class="view active" id="view-clients">
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Нийт клиент</div>
+        <div class="stat-val" id="s-total">–</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Идэвхтэй</div>
+        <div class="stat-val" id="s-active">–</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Нийт эргэлт</div>
+        <div class="stat-val" id="s-spins">–</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Ашигласан эргэлт</div>
+        <div class="stat-val" id="s-used">–</div>
+      </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Идэвхтэй</div>
-      <div class="stat-val" id="s-active">–</div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <input type="text" class="toolbar-search" id="search-input" placeholder="🔍 Нэр, утас, код хайх..." oninput="filterClients()" />
+      <select class="filter-sel" id="filter-type" onchange="filterClients()">
+        <option value="">Бүгд</option>
+        <option value="client">Харилцагч</option>
+        <option value="merchant">Мерчант</option>
+      </select>
+      <select class="filter-sel" id="filter-status" onchange="filterClients()">
+        <option value="">Бүгд</option>
+        <option value="true">Идэвхтэй</option>
+        <option value="false">Идэвхгүй</option>
+      </select>
+      <button class="btn-sm btn-import" onclick="document.getElementById('csv-file').click()">📥 CSV Оруулах</button>
+      <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="importCSV(event)" />
+      <button class="btn-sm btn-export" onclick="exportCSV()">📤 CSV Татах</button>
+      <button class="btn-sm btn-add" onclick="openModal()">+ Шинэ клиент</button>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Нийт эргэлт</div>
-      <div class="stat-val" id="s-spins">–</div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Нэр</th>
+            <th>Утас</th>
+            <th>Код</th>
+            <th>Төрөл</th>
+            <th>Эргэлт</th>
+            <th>Статус</th>
+            <th>Сүүлд эргүүлсэн</th>
+            <th>Үйлдэл</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr class="empty-row"><td colspan="8">Ачааллаж байна...</td></tr>
+        </tbody>
+      </table>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Ашигласан эргэлт</div>
-      <div class="stat-val" id="s-used">–</div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+      <button class="page-btn" id="prev-btn" onclick="changePage(-1)" disabled>← Өмнөх</button>
+      <span id="page-info">1 / 1</span>
+      <button class="page-btn" id="next-btn" onclick="changePage(1)" disabled>Дараах →</button>
     </div>
   </div>
 
-  <!-- Toolbar -->
-  <div class="toolbar">
-    <input type="text" class="toolbar-search" id="search-input" placeholder="🔍 Нэр, утас, код хайх..." oninput="filterClients()" />
-    <select class="filter-sel" id="filter-type" onchange="filterClients()">
-      <option value="">Бүгд</option>
-      <option value="client">Харилцагч</option>
-      <option value="merchant">Мерчант</option>
-    </select>
-    <select class="filter-sel" id="filter-status" onchange="filterClients()">
-      <option value="">Бүгд</option>
-      <option value="true">Идэвхтэй</option>
-      <option value="false">Идэвхгүй</option>
-    </select>
-    <button class="btn-sm btn-import" onclick="document.getElementById('csv-file').click()">📥 CSV Оруулах</button>
-    <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="importCSV(event)" />
-    <button class="btn-sm btn-export" onclick="exportCSV()">📤 CSV Татах</button>
-    <button class="btn-sm btn-add" onclick="openModal()">+ Шинэ клиент</button>
-  </div>
-
-  <!-- Config notice -->
-  <div class="config-box" id="config-box">
-    <strong>💡 Loyalty сайтад нэмэх .env тохиргоо:</strong>
-    <code id="cfg-url"></code>
-    <code id="cfg-key"></code>
-    <span style="font-size:.72rem;">WoowPayLoyalty/.env файлд хуулж нэмнэ үү, дараа нь дахин deploy хийнэ.</span>
-  </div>
-
-  <!-- Table -->
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Нэр</th>
-          <th>Утас</th>
-          <th>Код</th>
-          <th>Төрөл</th>
-          <th>Эргэлт</th>
-          <th>Статус</th>
-          <th>Сүүлд эргүүлсэн</th>
-          <th>Үйлдэл</th>
-        </tr>
-      </thead>
-      <tbody id="table-body">
-        <tr class="empty-row"><td colspan="8">Ачааллаж байна...</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Pagination -->
-  <div class="pagination">
-    <button class="page-btn" id="prev-btn" onclick="changePage(-1)" disabled>← Өмнөх</button>
-    <span id="page-info">1 / 1</span>
-    <button class="page-btn" id="next-btn" onclick="changePage(1)" disabled>Дараах →</button>
+  <!-- ══ PRIZES VIEW ════════════════════════════════════════════ -->
+  <div class="view" id="view-prizes">
+    <div class="toolbar">
+      <select class="filter-sel" id="prize-type-filter" onchange="renderPrizeTable()">
+        <option value="client">Харилцагчийн хүрд</option>
+        <option value="merchant">Мерчантын хүрд</option>
+      </select>
+      <span style="font-size:.8rem;color:var(--muted)">Идэвхтэй мөрүүдийн жин дээр үндэслэн магадлал тооцно</span>
+      <button class="btn-sm btn-add" style="margin-left:auto" onclick="openPrizeModal()">+ Шинэ шагнал</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Шагнал</th>
+            <th>Дэлгэрэнгүй</th>
+            <th>Жин</th>
+            <th>Магадлал</th>
+            <th>Статус</th>
+            <th>Үйлдэл</th>
+          </tr>
+        </thead>
+        <tbody id="prize-table-body">
+          <tr class="empty-row"><td colspan="6">Ачааллаж байна...</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
-<!-- ══ MODAL ══════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="modal" onclick="closeOnBg(event)">
+<!-- ══ CLIENT MODAL ═══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal" onclick="closeOnBg(event, 'modal')">
   <div class="modal">
     <div class="modal-title" id="modal-title">Шинэ клиент нэмэх</div>
     <div class="form-row">
@@ -450,73 +459,122 @@
   </div>
 </div>
 
+<!-- ══ REWARDS MODAL ══════════════════════════════════════════════ -->
+<div class="modal-overlay" id="rewards-modal" onclick="closeOnBg(event, 'rewards-modal')">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-title">🎁 <span id="rewards-client-name"></span> — хожсон шагналууд</div>
+    <div class="table-wrap" style="padding:0;overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Шагнал</th>
+            <th>Огноо</th>
+            <th>Олгосон эсэх</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="rewards-table-body">
+          <tr class="empty-row"><td colspan="4">Ачааллаж байна...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('rewards-modal')">Хаах</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PRIZE MODAL ════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="prize-modal" onclick="closeOnBg(event, 'prize-modal')">
+  <div class="modal">
+    <div class="modal-title" id="prize-modal-title">Шинэ шагнал нэмэх</div>
+    <div class="form-row">
+      <label>Хэний хүрд *</label>
+      <select id="pf-type">
+        <option value="client">Харилцагч (client)</option>
+        <option value="merchant">Мерчант (merchant)</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Дэлгэрэнгүй нэр (үр дүнгийн цонхонд харагдана) *</label>
+      <input type="text" id="pf-label" placeholder="5,000 WooW Бонус оноо" />
+    </div>
+    <div class="form-row">
+      <label>Богино нэр (хүрд дээр харагдана) *</label>
+      <input type="text" id="pf-short" placeholder="5,000 Бонус" />
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Эможи</label>
+        <input type="text" id="pf-emoji" placeholder="⭐" maxlength="4" />
+      </div>
+      <div class="form-row">
+        <label>Өнгө (hex)</label>
+        <input type="text" id="pf-color" placeholder="#29BDE0" />
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Тайлбар</label>
+      <input type="text" id="pf-desc" placeholder="WooW Бонус оноо нэмэгдлээ" />
+    </div>
+    <div class="form-row-2">
+      <div class="form-row">
+        <label>Жин (магадлалын харьцаа) *</label>
+        <input type="number" id="pf-weight" value="1" min="0" step="0.1" />
+        <div class="hint">Жин их байх тусам магадлал өндөр. Жишээ: 1 бол бусад 1 жинтэй мөрүүдтэй тэнцүү магадлалтай.</div>
+      </div>
+      <div class="form-row">
+        <label>Эрэмбэ (хүрд дээрх байрлал)</label>
+        <input type="number" id="pf-sort" value="0" min="0" />
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Идэвхтэй</label>
+      <select id="pf-enabled">
+        <option value="true">Тийм – Хүрдэнд орно</option>
+        <option value="false">Үгүй – Хүрдэнд ороохгүй</option>
+      </select>
+    </div>
+    <div class="modal-err" id="prize-modal-err"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('prize-modal')">Цуцлах</button>
+      <button class="btn-save" id="btn-save-prize" onclick="savePrize()">Хадгалах</button>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
 // ══════════════════════════════════════════════════════════════
-//  CONFIG — stored in localStorage
+//  CONFIG
 // ══════════════════════════════════════════════════════════════
-// ── Hardcoded defaults (safe: anon key is public, RLS protects data) ──
-const DEFAULT_URL = 'https://jamlxsllyqscxydkkwhe.supabase.co';
-const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphbWx4c2xseXFzY3h5ZGtrd2hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5NjY2MzEsImV4cCI6MjEwMTU0MjYzMX0.NwJ9IUfSIhpgMivFt517V2h4uD7mCyJWLxoPpYJ2_w4';
+// This file is a static HTML page (not part of the Vite build), so it
+// can't read import.meta.env — these are its only source of config.
+// There is intentionally no way to override them from the UI: a
+// pre-login "point this panel at a different backend" box used to
+// exist here, but it let anyone (or anyone who social-engineered the
+// admin into pasting different values) redirect where login
+// credentials get sent. Removed. Safe: the anon key is public by
+// design and RLS is what actually protects the data.
+const SUPA_URL = 'https://jamlxsllyqscxydkkwhe.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImphbWx4c2xseXFzY3h5ZGtrd2hlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5NjY2MzEsImV4cCI6MjEwMTU0MjYzMX0.NwJ9IUfSIhpgMivFt517V2h4uD7mCyJWLxoPpYJ2_w4';
 
-const LS_URL  = 'wp_supa_url';
-const LS_KEY  = 'wp_supa_key';
-
-function getConfig() {
-  let url, key;
-  try {
-    url = document.getElementById('s-url')?.value.trim() || localStorage.getItem(LS_URL) || DEFAULT_URL;
-    key = document.getElementById('s-anon')?.value.trim() || localStorage.getItem(LS_KEY) || DEFAULT_KEY;
-  } catch(e) {
-    url = DEFAULT_URL;
-    key = DEFAULT_KEY;
-  }
-  return { url, key };
-}
-function saveConfig() {
-  const url = document.getElementById('s-url').value.trim() || DEFAULT_URL;
-  const key = document.getElementById('s-anon').value.trim() || DEFAULT_KEY;
-  try {
-    localStorage.setItem(LS_URL, url);
-    localStorage.setItem(LS_KEY, key);
-  } catch(e) { /* file:// blocks localStorage, that's ok */ }
-  showToast('Тохиргоо хадгалагдлаа ✓', 'success');
-  initSupabase(url, key);
+let sbClient = null;
+function initSupabase() {
+  try { sbClient = window.supabase.createClient(SUPA_URL, SUPA_KEY); }
+  catch(e) { console.error('Supabase init error', e); }
 }
 
-// Pre-fill from localStorage (falls back to hardcoded defaults)
 window.addEventListener('DOMContentLoaded', () => {
-  let url = DEFAULT_URL, key = DEFAULT_KEY;
-  try {
-    url = localStorage.getItem(LS_URL) || DEFAULT_URL;
-    key = localStorage.getItem(LS_KEY) || DEFAULT_KEY;
-  } catch(e) {}
-  if (document.getElementById('s-url')) document.getElementById('s-url').value = url;
-  if (document.getElementById('s-anon')) document.getElementById('s-anon').value = key;
-  initSupabase(url, key); // always init on load
-
-  // Enter key on login
+  initSupabase();
   ['l-email','l-pass'].forEach(id => {
     document.getElementById(id).addEventListener('keydown', e => {
       if (e.key === 'Enter') login();
     });
   });
 });
-
-// ══════════════════════════════════════════════════════════════
-//  SUPABASE CLIENT
-// ══════════════════════════════════════════════════════════════
-let sbClient = null;
-
-function initSupabase(url, key) {
-  try {
-    sbClient = window.supabase.createClient(url, key);
-  } catch(e) {
-    console.error('Supabase init error', e);
-  }
-}
 
 // ══════════════════════════════════════════════════════════════
 //  AUTH
@@ -528,20 +586,14 @@ async function login() {
   const btn   = document.getElementById('l-btn');
   errEl.textContent = '';
   if (!email || !pass) { errEl.textContent = 'Имэйл болон нууц үгээ оруулна уу'; return; }
-
-  const cfg = getConfig();
-  if (!cfg.url || !cfg.key) {
-    errEl.textContent = 'Supabase URL болон Anon Key тохируулна уу (доорх ⚙️)';
-    return;
-  }
-  if (!sbClient) initSupabase(cfg.url, cfg.key);
+  if (!sbClient) initSupabase();
 
   btn.disabled = true;
   btn.textContent = 'Нэвтэрч байна...';
   try {
     const { error } = await sbClient.auth.signInWithPassword({ email, password: pass });
     if (error) throw error;
-    showApp(email, cfg);
+    showApp(email);
   } catch(e) {
     errEl.textContent = e.message || 'Нэвтрэх боломжгүй';
   } finally {
@@ -559,25 +611,26 @@ async function logout() {
 document.getElementById('l-btn').addEventListener('click', login);
 
 // ══════════════════════════════════════════════════════════════
-//  APP INIT
+//  APP INIT / VIEW SWITCHING
 // ══════════════════════════════════════════════════════════════
-function showApp(email, cfg) {
+function showApp(email) {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('visible');
   document.getElementById('topbar-user').textContent = email;
-
-  // Show env hint
-  const box = document.getElementById('config-box');
-  document.getElementById('cfg-url').textContent = `VITE_SUPABASE_URL=${cfg.url}`;
-  document.getElementById('cfg-key').textContent = `VITE_SUPABASE_ANON_KEY=${cfg.key}`;
-  box.classList.add('show');
-  setTimeout(() => box.classList.remove('show'), 8000);
-
   loadClients();
 }
 
+let prizesLoaded = false;
+function switchView(view) {
+  document.getElementById('view-clients').classList.toggle('active', view === 'clients');
+  document.getElementById('view-prizes').classList.toggle('active', view === 'prizes');
+  document.getElementById('tab-clients').classList.toggle('active', view === 'clients');
+  document.getElementById('tab-prizes').classList.toggle('active', view === 'prizes');
+  if (view === 'prizes' && !prizesLoaded) { prizesLoaded = true; loadPrizes(); }
+}
+
 // ══════════════════════════════════════════════════════════════
-//  DATA
+//  CLIENTS DATA
 // ══════════════════════════════════════════════════════════════
 let allClients   = [];
 let filteredList = [];
@@ -666,6 +719,7 @@ function renderTable() {
         <td style="font-size:.78rem;color:var(--muted)">${date}</td>
         <td>
           <div class="actions">
+            <button class="btn-icon" title="Хожсон шагнал" onclick="openRewards('${c.id}', '${esc(c.name)}')">🎁</button>
             <button class="btn-icon" title="Засах" onclick="editClient('${c.id}')">✏️</button>
             <button class="btn-icon ${c.enabled ? 'danger' : 'success'}" title="${c.enabled ? 'Хаах' : 'Нээх'}"
               onclick="toggleEnabled('${c.id}', ${c.enabled})">${c.enabled ? '🔒' : '🔓'}</button>
@@ -678,7 +732,7 @@ function renderTable() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  MODAL
+//  CLIENT MODAL
 // ══════════════════════════════════════════════════════════════
 let editingId = null;
 
@@ -697,8 +751,8 @@ function openModal(client = null) {
   document.getElementById('f-name').focus();
 }
 
-function closeModal() { document.getElementById('modal').classList.remove('open'); }
-function closeOnBg(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+function closeModal(id = 'modal') { document.getElementById(id).classList.remove('open'); }
+function closeOnBg(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
 
 function editClient(id) {
   const c = allClients.find(x => x.id === id);
@@ -785,7 +839,191 @@ async function deleteClient(id, name) {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  CSV IMPORT / EXPORT
+//  REWARDS (spin_results) — what a client actually won
+// ══════════════════════════════════════════════════════════════
+let currentRewardsClientId = null;
+
+async function openRewards(clientId, name) {
+  currentRewardsClientId = clientId;
+  document.getElementById('rewards-client-name').textContent = name;
+  document.getElementById('rewards-modal').classList.add('open');
+  const tbody = document.getElementById('rewards-table-body');
+  tbody.innerHTML = `<tr class="empty-row"><td colspan="4">Ачааллаж байна...</td></tr>`;
+
+  const { data, error } = await sbClient
+    .from('spin_results')
+    .select('*')
+    .eq('client_id', clientId)
+    .order('won_at', { ascending: false });
+
+  if (error) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="4">Алдаа гарлаа</td></tr>`;
+    return;
+  }
+  if (!data || !data.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="4">Энэ клиент шагнал хожоогүй байна (эсвэл спин хийхэд шагнал бүртгэгдээгүй хуучин үе)</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = data.map(r => `
+    <tr>
+      <td>${esc(r.prize_label)}</td>
+      <td style="font-size:.78rem;color:var(--muted)">${new Date(r.won_at).toLocaleString('mn-MN')}</td>
+      <td><span class="badge ${r.fulfilled ? 'badge-on' : 'badge-wait'}">${r.fulfilled ? 'Олгосон' : 'Хүлээгдэж буй'}</span></td>
+      <td>
+        <button class="btn-icon ${r.fulfilled ? '' : 'success'}" title="${r.fulfilled ? 'Буцаах' : 'Олгосон гэж тэмдэглэх'}"
+          onclick="toggleFulfilled('${r.id}', ${r.fulfilled})">${r.fulfilled ? '↩️' : '✅'}</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function toggleFulfilled(id, current) {
+  const email = document.getElementById('topbar-user').textContent || 'admin';
+  const payload = current
+    ? { fulfilled: false, fulfilled_at: null, fulfilled_by: null }
+    : { fulfilled: true,  fulfilled_at: new Date().toISOString(), fulfilled_by: email };
+  const { error } = await sbClient.from('spin_results').update(payload).eq('id', id);
+  if (error) { showToast('Алдаа гарлаа', 'error'); return; }
+  showToast(current ? 'Буцаагдлаа' : 'Олгосон гэж тэмдэглэлээ ✓', 'success');
+  if (currentRewardsClientId) {
+    const c = allClients.find(x => x.id === currentRewardsClientId);
+    openRewards(currentRewardsClientId, c ? c.name : '');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  PRIZES & ODDS — replaces the manual Excel prize/probability sheet
+// ══════════════════════════════════════════════════════════════
+let allPrizes = [];
+
+async function loadPrizes() {
+  const tbody = document.getElementById('prize-table-body');
+  tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Ачааллаж байна...</td></tr>`;
+  const { data, error } = await sbClient
+    .from('prizes')
+    .select('*')
+    .order('user_type', { ascending: true })
+    .order('sort_order', { ascending: true });
+  if (error) { tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Алдаа гарлаа</td></tr>`; return; }
+  allPrizes = data || [];
+  renderPrizeTable();
+}
+
+function renderPrizeTable() {
+  const type = document.getElementById('prize-type-filter').value;
+  const tbody = document.getElementById('prize-table-body');
+  const rows = allPrizes.filter(p => p.user_type === type);
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Шагнал алга</td></tr>`;
+    return;
+  }
+
+  const totalWeight = rows.filter(p => p.enabled).reduce((s, p) => s + Number(p.weight || 0), 0);
+
+  tbody.innerHTML = rows.map(p => {
+    const pct = (p.enabled && totalWeight > 0) ? ((Number(p.weight || 0) / totalWeight) * 100).toFixed(1) : '0.0';
+    return `
+      <tr>
+        <td><span class="swatch" style="background:${esc(p.color)}"></span>${p.emoji || ''} ${esc(p.label)}</td>
+        <td style="font-size:.78rem;color:var(--muted)">${esc(p.short_label)}</td>
+        <td>${Number(p.weight)}</td>
+        <td>${pct}%</td>
+        <td><span class="badge ${p.enabled ? 'badge-on' : 'badge-off'}">${p.enabled ? 'Идэвхтэй' : 'Хаасан'}</span></td>
+        <td>
+          <div class="actions">
+            <button class="btn-icon" title="Засах" onclick="editPrize('${p.id}')">✏️</button>
+            <button class="btn-icon ${p.enabled ? 'danger' : 'success'}" title="${p.enabled ? 'Хаах' : 'Нээх'}"
+              onclick="togglePrizeEnabled('${p.id}', ${p.enabled})">${p.enabled ? '🔒' : '🔓'}</button>
+            <button class="btn-icon danger" title="Устгах" onclick="deletePrize('${p.id}', '${esc(p.label)}')">🗑️</button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+let editingPrizeId = null;
+
+function openPrizeModal(prize = null) {
+  editingPrizeId = prize?.id || null;
+  document.getElementById('prize-modal-title').textContent = prize ? 'Шагнал засах' : 'Шинэ шагнал нэмэх';
+  document.getElementById('pf-type').value    = prize?.user_type || document.getElementById('prize-type-filter').value;
+  document.getElementById('pf-label').value   = prize?.label || '';
+  document.getElementById('pf-short').value   = prize?.short_label || '';
+  document.getElementById('pf-emoji').value   = prize?.emoji || '🎁';
+  document.getElementById('pf-color').value   = prize?.color || '#29BDE0';
+  document.getElementById('pf-desc').value    = prize?.description || '';
+  document.getElementById('pf-weight').value  = prize?.weight ?? 1;
+  document.getElementById('pf-sort').value    = prize?.sort_order ?? (allPrizes.filter(p => p.user_type === (prize?.user_type || document.getElementById('prize-type-filter').value)).length);
+  document.getElementById('pf-enabled').value = prize ? String(prize.enabled) : 'true';
+  document.getElementById('prize-modal-err').textContent = '';
+  document.getElementById('prize-modal').classList.add('open');
+}
+
+function editPrize(id) {
+  const p = allPrizes.find(x => x.id === id);
+  if (p) openPrizeModal(p);
+}
+
+async function savePrize() {
+  const user_type   = document.getElementById('pf-type').value;
+  const label       = document.getElementById('pf-label').value.trim();
+  const short_label = document.getElementById('pf-short').value.trim();
+  const emoji       = document.getElementById('pf-emoji').value.trim() || '🎁';
+  const color       = document.getElementById('pf-color').value.trim() || '#29BDE0';
+  const description = document.getElementById('pf-desc').value.trim();
+  const weight      = parseFloat(document.getElementById('pf-weight').value);
+  const sort_order  = parseInt(document.getElementById('pf-sort').value) || 0;
+  const enabled     = document.getElementById('pf-enabled').value === 'true';
+  const errEl = document.getElementById('prize-modal-err');
+  const btn   = document.getElementById('btn-save-prize');
+
+  if (!label || !short_label || isNaN(weight) || weight < 0) {
+    errEl.textContent = 'Дэлгэрэнгүй нэр, богино нэр, жин (0 буюу түүнээс их) заавал байх ёстой';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Хадгалж байна...';
+  errEl.textContent = '';
+
+  try {
+    const payload = { user_type, label, short_label, emoji, color, description, weight, sort_order, enabled };
+    let error;
+    if (editingPrizeId) {
+      ({ error } = await sbClient.from('prizes').update(payload).eq('id', editingPrizeId));
+    } else {
+      ({ error } = await sbClient.from('prizes').insert(payload));
+    }
+    if (error) throw error;
+    showToast(editingPrizeId ? 'Шагнал шинэчлэгдлээ ✓' : 'Шагнал нэмэгдлээ ✓', 'success');
+    closeModal('prize-modal');
+    loadPrizes();
+  } catch(e) {
+    errEl.textContent = e.message || 'Алдаа гарлаа';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Хадгалах';
+  }
+}
+
+async function togglePrizeEnabled(id, current) {
+  const { error } = await sbClient.from('prizes').update({ enabled: !current }).eq('id', id);
+  if (error) { showToast('Алдаа гарлаа', 'error'); return; }
+  showToast(!current ? 'Идэвхжүүлсэн ✓' : 'Хаасан ✓', 'success');
+  loadPrizes();
+}
+
+async function deletePrize(id, label) {
+  if (!confirm(`"${label}" шагналыг устгах уу?`)) return;
+  const { error } = await sbClient.from('prizes').delete().eq('id', id);
+  if (error) { showToast('Устгахад алдаа гарлаа', 'error'); return; }
+  showToast('Устгасан ✓', 'success');
+  loadPrizes();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  CSV IMPORT / EXPORT (clients)
 // ══════════════════════════════════════════════════════════════
 function exportCSV() {
   const rows = [['Нэр','Утас','Код','Төрөл','Эргэлт','Ашигласан','Идэвхтэй','Тэмдэглэл']];
