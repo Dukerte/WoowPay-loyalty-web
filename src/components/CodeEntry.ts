@@ -16,11 +16,16 @@ export function CodeEntry(
       <div class="ce-card-wrap">
         <div class="ce-deco" aria-hidden="true">
           <div class="ce-deco-ring"></div>
-          <div class="ce-deco-badge ce-deco-gift">🎁</div>
+          <div class="ce-gift-hero">
+            <div class="ce-gift-glow"></div>
+            <img src="/gift-box-open.webp" class="gb-open" alt="" />
+            <img src="/gift-box-closed.webp" class="gb-closed" alt="" />
+          </div>
           <div class="ce-deco-badge ce-deco-coin">₮</div>
           <span class="ce-sparkle s1">✦</span>
           <span class="ce-sparkle s2">✦</span>
           <span class="ce-sparkle s3">✦</span>
+          <span class="ce-sparkle s4">✦</span>
         </div>
         <div class="ce-card">
         <div class="ce-card-bar"></div>

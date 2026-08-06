@@ -79,7 +79,21 @@ html, body {
   justify-content: center;
   padding: 24px 16px 48px;
   position: relative;
+  z-index: 1;
+}
+
+/* ════════════════════════════════════════════════════════════
+   BACKGROUND SCENE — persistent across screens (lives outside
+   #app so it survives every innerHTML swap in main.ts). Gradient
+   base + drifting orbs + a faint dot-grid texture + slow-floating
+   particles, instead of one flat solid navy fill.
+═══════════════════════════════════════════════════════════ */
+.bg-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
   overflow: hidden;
+  pointer-events: none;
   background:
     radial-gradient(ellipse 80% 60% at 10% 0%,   #0B0A52 0%, transparent 55%),
     radial-gradient(ellipse 60% 50% at 90% 100%,  #0B6BFF33 0%, transparent 52%),
@@ -87,29 +101,75 @@ html, body {
     var(--navy);
 }
 
-/* Decorative orbs */
-#app::before, #app::after {
-  content: '';
+.bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);
+  background-size: 34px 34px;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, black 0%, transparent 75%);
+}
+
+.bg-orb {
   position: absolute;
   border-radius: 50%;
-  pointer-events: none;
   will-change: transform;
 }
-#app::before {
+.bg-orb-1 {
   width: 600px; height: 600px;
   top: -260px; right: -200px;
-  background: radial-gradient(circle, rgba(51,168,221,.06) 0%, transparent 68%);
+  background: radial-gradient(circle, rgba(51,168,221,.08) 0%, transparent 68%);
   animation: drift 12s ease-in-out infinite alternate;
 }
-#app::after {
+.bg-orb-2 {
   width: 440px; height: 440px;
   bottom: -200px; left: -140px;
-  background: radial-gradient(circle, rgba(51,168,221,.05) 0%, transparent 68%);
+  background: radial-gradient(circle, rgba(51,168,221,.06) 0%, transparent 68%);
   animation: drift 16s ease-in-out infinite alternate-reverse;
+}
+.bg-orb-3 {
+  width: 340px; height: 340px;
+  top: 40%; left: 50%;
+  background: radial-gradient(circle, rgba(11,107,255,.07) 0%, transparent 70%);
+  animation: drift 20s ease-in-out infinite alternate;
 }
 @keyframes drift {
   from { transform: translate(0,0); }
   to   { transform: translate(20px, -15px); }
+}
+
+/* Slow-floating particles — small twinkling dots drifting upward,
+   staggered so it never looks mechanical. */
+.bg-particles span {
+  position: absolute;
+  bottom: -20px;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.5);
+  animation: particleRise linear infinite;
+}
+.bg-particles span:nth-child(1)  { left: 6%;  width: 3px; height: 3px; animation-duration: 14s; animation-delay: 0s;   }
+.bg-particles span:nth-child(2)  { left: 16%; background: rgba(51,168,221,.7); animation-duration: 18s; animation-delay: 2s; }
+.bg-particles span:nth-child(3)  { left: 27%; width: 5px; height: 5px; animation-duration: 22s; animation-delay: 5s; }
+.bg-particles span:nth-child(4)  { left: 39%; animation-duration: 16s; animation-delay: 1s; }
+.bg-particles span:nth-child(5)  { left: 52%; background: rgba(51,168,221,.6); animation-duration: 20s; animation-delay: 7s; }
+.bg-particles span:nth-child(6)  { left: 63%; width: 3px; height: 3px; animation-duration: 15s; animation-delay: 3s; }
+.bg-particles span:nth-child(7)  { left: 74%; animation-duration: 24s; animation-delay: 6s; }
+.bg-particles span:nth-child(8)  { left: 83%; width: 5px; height: 5px; background: rgba(51,168,221,.6); animation-duration: 17s; animation-delay: 4s; }
+.bg-particles span:nth-child(9)  { left: 91%; animation-duration: 19s; animation-delay: 8s; }
+.bg-particles span:nth-child(10) { left: 48%; width: 3px; height: 3px; animation-duration: 21s; animation-delay: 9.5s; }
+
+@keyframes particleRise {
+  0%   { transform: translateY(0) translateX(0);      opacity: 0; }
+  10%  { opacity: .8; }
+  90%  { opacity: .3; }
+  100% { transform: translateY(-100vh) translateX(24px); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-orb, .bg-particles span, .ce-deco-ring, .ce-deco-badge,
+  .ce-gift-glow, .gb-closed, .gb-open, .ce-sparkle, .ce-btn, .ss-spin-btn {
+    animation: none !important;
+  }
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -172,11 +232,70 @@ html, body {
   animation: decoFloat 5s ease-in-out infinite;
   z-index: 1;
 }
-.ce-deco-gift {
-  top: -18px;
-  right: -14px;
-  background: linear-gradient(135deg, var(--cyan) 0%, var(--cyan-dark) 100%);
-  transform: rotate(-10deg);
+/* Hero gift box — real 3D render, two frames (closed/open) crossfaded
+   in an ambient loop so the "unwrapping" moment reads even on
+   mobile, which has no hover. Desktop pointer users get a bonus
+   speed-up + lift on :hover. */
+.ce-gift-hero {
+  position: absolute;
+  top: -46px;
+  right: -30px;
+  width: 132px;
+  height: 132px;
+  z-index: 1;
+  pointer-events: auto;
+  cursor: default;
+}
+.ce-gift-glow {
+  position: absolute;
+  inset: -20px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(51,168,221,.45) 0%, rgba(11,107,255,.15) 45%, transparent 72%);
+  filter: blur(6px);
+  animation: giftGlowPulse 3.4s ease-in-out infinite;
+  z-index: -1;
+}
+.ce-gift-hero img {
+  position: absolute;
+  left: 50%;
+  filter: drop-shadow(0 18px 30px rgba(6,43,102,.45));
+}
+.gb-closed {
+  top: 6px;
+  width: 118px;
+  transform: translateX(-50%) rotate(-6deg);
+  animation: giftClosedCycle 6s ease-in-out infinite;
+}
+.gb-open {
+  top: 46px;
+  width: 132px;
+  opacity: 0;
+  transform: translateX(-50%) scale(.85);
+  animation: giftOpenCycle 6s ease-in-out infinite;
+}
+.ce-gift-hero:hover .gb-closed,
+.ce-gift-hero:hover .gb-open {
+  animation-duration: 2.2s;
+}
+.ce-gift-hero:hover {
+  filter: drop-shadow(0 0 18px rgba(51,168,221,.5));
+}
+
+@keyframes giftClosedCycle {
+  0%, 55%   { opacity: 1; transform: translateX(-50%) translateY(0)    rotate(-6deg) scale(1); }
+  68%       { opacity: 0; transform: translateX(-50%) translateY(-16px) rotate(4deg)  scale(.9); }
+  85%       { opacity: 0; transform: translateX(-50%) translateY(-16px) rotate(4deg)  scale(.9); }
+  100%      { opacity: 1; transform: translateX(-50%) translateY(0)    rotate(-6deg) scale(1); }
+}
+@keyframes giftOpenCycle {
+  0%, 55%   { opacity: 0; transform: translateX(-50%) scale(.8); }
+  70%       { opacity: 1; transform: translateX(-50%) scale(1.02); }
+  85%       { opacity: 1; transform: translateX(-50%) scale(1); }
+  100%      { opacity: 0; transform: translateX(-50%) scale(.85); }
+}
+@keyframes giftGlowPulse {
+  0%, 100% { opacity: .55; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.12); }
 }
 .ce-deco-coin {
   bottom: 40px;
@@ -195,8 +314,9 @@ html, body {
   animation: decoTwinkle 2.6s ease-in-out infinite;
 }
 .ce-sparkle.s1 { top: -10px; left: 40px; animation-delay: 0s; }
-.ce-sparkle.s2 { top: -22px; right: 90px; font-size: .75rem; animation-delay: .8s; color: #FFD43B; }
+.ce-sparkle.s2 { top: -22px; right: 90px; font-size: .75rem; animation-delay: .8s; color: rgba(51,168,221,.9); }
 .ce-sparkle.s3 { bottom: 30px; right: -16px; animation-delay: 1.6s; }
+.ce-sparkle.s4 { top: 60px; right: 30px; font-size: .8rem; color: rgba(255,255,255,.7); animation-delay: 2.2s; }
 
 @keyframes decoFloat {
   0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
@@ -214,9 +334,11 @@ html, body {
 @media (max-width: 560px) {
   .ce-deco-ring { display: none; }
   .ce-deco-badge { width: 40px; height: 40px; font-size: 1.1rem; border-radius: 12px; }
-  .ce-deco-gift { top: -10px; right: -8px; }
   .ce-deco-coin { bottom: 28px; left: -10px; }
   .ce-sparkle.s2 { right: 60px; }
+  .ce-gift-hero { width: 92px; height: 92px; top: -30px; right: -14px; }
+  .gb-closed { width: 82px; }
+  .gb-open   { width: 92px; top: 32px; }
 }
 
 /* Card */
