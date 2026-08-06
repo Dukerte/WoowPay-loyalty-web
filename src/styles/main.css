@@ -128,22 +128,6 @@ html, body {
   mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, black 0%, transparent 75%);
 }
 
-/* Brand watermark — the Woow Pay infinity-knot mark from the logo,
-   tiled across the scene instead of a generic dot texture. Reads as
-   a deliberate brand cue rather than decoration competing with the
-   card, but still visible enough to register (unlike a near-zero
-   opacity dusting). */
-.bg-mark {
-  position: absolute;
-  inset: -40px;
-  background-image: url('/woow-mark.webp');
-  background-repeat: repeat;
-  background-size: 200px auto;
-  background-position: 30px 20px;
-  opacity: .07;
-  mask-image: radial-gradient(ellipse 85% 65% at 50% 25%, black 0%, transparent 78%);
-}
-
 .bg-orb {
   position: absolute;
   border-radius: 50%;
@@ -231,9 +215,9 @@ html, body {
 .ce-logo {
   width: 240px;
   /* Gap sized to clear the gift-box backdrop + coin badge that poke
-     up above the card into this space (box pokes 90px, coin 56px —
-     110px leaves a buffer on both). */
-  margin-bottom: 110px;
+     up above the card into this space (box now pokes 175px so nearly
+     the whole box is visible, coin 56px — 195px leaves a buffer). */
+  margin-bottom: 195px;
   filter: drop-shadow(0 4px 24px rgba(51,168,221,.28));
   transition: filter .3s ease;
 }
@@ -291,28 +275,21 @@ html, body {
   pointer-events: none;
 }
 .ce-box-backdrop-top {
-  top: -90px;
-  /* No mask needed here — this piece is hidden by the opaque card
-     itself (z-index), not by a hard overflow crop, so there's no
-     visible seam to soften. */
-  /* Settles into place once on load (drop + ease, like it just landed),
-     then hands off to the ambient float — sequenced so the two never
-     fight over the transform property at the same time. */
+  /* Box is ~193px tall at this width (700x451 source) — show almost
+     all of it (bow AND body), tucking only ~18px behind the card so
+     it still reads as "resting into" the card rather than floating
+     fully separate. Previously only 90px was visible, which cut off
+     the box body entirely and left just the bow. */
+  top: -175px;
   animation: boxSettle .6s cubic-bezier(.34,1.56,.64,1) both,
              boxBackdropFloat 5s ease-in-out infinite .6s;
 }
 .ce-box-backdrop-bottom {
+  /* Full box, uncropped — no fixed height/overflow/mask. Tucked
+     slightly under the card for a connected look; the rest (the
+     whole box body, down into its reflection) is fully visible below. */
   top: 100%;
-  margin-top: -6px;
-  height: 96px;
-  overflow: hidden;
-  /* Same idea in reverse — fades the crop out instead of cutting it
-     off with a hard horizontal line. */
-  mask-image: linear-gradient(to bottom, black 0%, black 68%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, black 0%, black 68%, transparent 100%);
-  /* Settles slightly after the top piece for a natural cascade, and
-     floats on a different cycle length so the two drift out of sync
-     over time instead of moving in lockstep. */
+  margin-top: -16px;
   animation: boxSettle .6s cubic-bezier(.34,1.56,.64,1) .15s both,
              boxBackdropFloat 5.6s ease-in-out infinite .75s;
 }
@@ -381,13 +358,13 @@ html, body {
 }
 
 @media (max-width: 560px) {
-  .ce-logo { margin-bottom: 84px; }
+  .ce-logo { margin-bottom: 132px; }
   .ce-deco-badge { width: 36px; height: 36px; font-size: 1rem; border-radius: 11px; }
-  .ce-deco-coin { top: -40px; left: 10px; bottom: auto; }
+  .ce-deco-coin { top: -60px; left: 10px; bottom: auto; }
   .ce-sparkle.s2 { right: 60px; }
   .ce-box-backdrop { width: 200px; }
-  .ce-box-backdrop-top    { top: -58px; }
-  .ce-box-backdrop-bottom { top: 100%; margin-top: -4px; height: 58px; }
+  .ce-box-backdrop-top    { top: -117px; }
+  .ce-box-backdrop-bottom { top: 100%; margin-top: -10px; }
   .ce-box-glow { width: 230px; height: 230px; }
 }
 
@@ -425,7 +402,7 @@ html, body {
   flex-direction: column;
   align-items: center;
   flex-shrink: 0;
-  width: 200px;
+  width: 168px;
 }
 
 .ce-owl-bubble {
@@ -433,8 +410,8 @@ html, body {
   width: 100%;
   background: #fff;
   border: 2px solid rgba(51,168,221,.35);
-  border-radius: 22px;
-  padding: 16px 18px 15px;
+  border-radius: 20px;
+  padding: 13px 14px 12px;
   margin: 10px 0 8px;
   box-shadow: 0 14px 32px rgba(6,43,102,.16), 0 2px 0 rgba(255,255,255,.6) inset;
   animation: bubblePop .5s cubic-bezier(.34,1.56,.64,1) .15s both;
@@ -456,8 +433,8 @@ html, body {
   animation: decoFloat 3.2s ease-in-out infinite;
 }
 .ce-owl-bubble p {
-  font-size: .78rem;
-  line-height: 1.48;
+  font-size: .72rem;
+  line-height: 1.44;
   color: var(--text-navy);
   font-weight: 500;
   text-align: center;
@@ -1211,7 +1188,7 @@ canvas.spin-wheel {
 /* ─── Responsive ─────────────────────────────────────────── */
 @media (max-width: 420px) {
   .ce-owl       { width: 128px; }
-  .ce-owl-col   { width: 148px; }
+  .ce-owl-col   { width: 130px; }
   .ce-owl-bubble { padding: 12px 12px 11px; border-radius: 18px; }
   .ce-owl-bubble-badge { width: 28px; height: 28px; font-size: .9rem; top: -13px; left: -10px; }
   .ce-owl-bubble p { font-size: .68rem; line-height: 1.4; }
