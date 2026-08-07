@@ -5,3 +5,9 @@ dist/
 .env.local
 .env.*.local
 public/*.png
+
+# Client data imports/exports (customer names, phone numbers) —
+# never belongs in git history.
+*.xlsx
+*.csv
+!WoowPay_Prizes.xlsx

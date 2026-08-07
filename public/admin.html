@@ -1160,7 +1160,11 @@ async function importRows(rows) {
       name:      String(cols[0] || ''),
       phone:     String(cols[1] || ''),
       code:      String(cols[2] || '').toUpperCase(),
-      user_type: cols[3] === 'merchant' ? 'merchant' : 'client',
+      // Accepts both the raw English value this same file exports
+      // ('merchant'/'client') and the Mongolian labels a human is
+      // more likely to type by hand ('Мерчант'/'Харилцагч') — matched
+      // case-insensitively so 'мерчант', 'Мерчант', etc. all work.
+      user_type: /^(merchant|мерчант)$/i.test(String(cols[3] || '').trim()) ? 'merchant' : 'client',
       spins:     parseInt(cols[4]) || 1,
       spins_used: 0,
       enabled:   cols[6] !== 'үгүй',
