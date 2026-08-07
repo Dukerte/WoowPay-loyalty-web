@@ -353,7 +353,7 @@
         <option value="true">Идэвхтэй</option>
         <option value="false">Идэвхгүй</option>
       </select>
-      <button class="btn-sm btn-import" onclick="document.getElementById('csv-file').click()">📥 CSV/XLSX Оруулах</button>
+      <button class="btn-sm btn-import" onclick="document.getElementById('csv-file').click()" title="Заавал: Нэр, Утас багана. Мөн байвал ашиглана: Код, Төрөл (Мерчант/Харилцагч), Эргэлт (эсвэл Эрхийн тоо), Идэвхтэй, Тэмдэглэл. Код баганагүй эсвэл хоосон бол систем автоматаар давхцахгүй код үүсгэнэ.">📥 CSV/XLSX Оруулах</button>
       <input type="file" id="csv-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importFile(event)" />
       <button class="btn-sm btn-export" onclick="exportFile()">📤 CSV/XLSX Татах</button>
       <button class="btn-sm btn-add" onclick="openModal()">+ Шинэ харилцагч</button>
@@ -1145,36 +1145,97 @@ function importFile(event) {
   }
 }
 
-/** Shared row -> upsert logic for both CSV and XLSX import.
-    Expects the same column order as EXPORT_HEADERS (extra trailing
-    columns like "Сүүлд хожсон шагнал" are informational only and
-    ignored on import — prizes are only ever written by the spin
-    wheel itself, never imported). */
+// Unambiguous code alphabet — no 0/O or 1/I/L confusion, since these
+// codes get typed by hand on a phone.
+const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+function randomCode(prefix, usedCodes) {
+  let code;
+  do {
+    let suffix = '';
+    for (let i = 0; i < 6; i++) suffix += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+    code = `${prefix}-${suffix}`;
+  } while (usedCodes.has(code));
+  usedCodes.add(code);
+  return code;
+}
+
+/** Shared row -> upsert logic for both CSV and XLSX import. Reads
+    columns by matching the header row's Mongolian labels rather than
+    a fixed position, so files don't have to carry every column in
+    exactly the EXPORT_HEADERS order/count — e.g. a minimal file with
+    just Нэр, Утас, Төрөл, Эрхийн тоо (no Код column at all) imports
+    fine, and a code is generated for every row that doesn't supply
+    one. Generated codes are checked against both the rest of the
+    batch and every code already in the database, so they're always
+    unique. */
 async function importRows(rows) {
   if (rows.length < 2) { showToast('Файл хоосон байна', 'error'); return; }
+
+  const header = rows[0].map(h => String(h || '').trim().toLowerCase());
+  const findCol = (...names) => {
+    for (const n of names) {
+      const i = header.indexOf(n.toLowerCase());
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
+  const col = {
+    name:    findCol('нэр'),
+    phone:   findCol('утас'),
+    code:    findCol('код'),
+    type:    findCol('төрөл'),
+    spins:   findCol('эргэлт', 'эрхийн тоо', 'эрх'),
+    used:    findCol('ашигласан'),
+    enabled: findCol('идэвхтэй'),
+    notes:   findCol('тэмдэглэл'),
+  };
+  if (col.name < 0 || col.phone < 0) {
+    showToast('Толгой мөрөнд "Нэр", "Утас" багана олдсонгүй', 'error');
+    return;
+  }
+
+  // Existing codes across the whole system, so generated codes can
+  // never collide with a real, already-issued code.
+  const { data: existingRows, error: fetchErr } = await sbClient.from('clients').select('code');
+  if (fetchErr) { showToast('Одоо байгаа кодуудыг уншиж чадсангүй: ' + fetchErr.message, 'error'); return; }
+  const usedCodes = new Set((existingRows || []).map(r => r.code));
+
   const inserts = [];
+  let generatedCount = 0;
   for (let i = 1; i < rows.length; i++) {
     const cols = rows[i];
-    if (!cols || cols.length < 4 || !cols[0]) continue;
+    if (!cols || !cols[col.name]) continue;
+
+    // Accepts both the raw English value this same file exports
+    // ('merchant'/'client') and the Mongolian labels a human is more
+    // likely to type by hand ('Мерчант'/'Харилцагч').
+    const userType = /^(merchant|мерчант)$/i.test(String(cols[col.type] || '').trim()) ? 'merchant' : 'client';
+
+    let code = col.code >= 0 ? String(cols[col.code] || '').trim().toUpperCase() : '';
+    if (!code) {
+      code = randomCode(userType === 'merchant' ? 'WM' : 'WC', usedCodes);
+      generatedCount++;
+    } else {
+      usedCodes.add(code);
+    }
+
     inserts.push({
-      name:      String(cols[0] || ''),
-      phone:     String(cols[1] || ''),
-      code:      String(cols[2] || '').toUpperCase(),
-      // Accepts both the raw English value this same file exports
-      // ('merchant'/'client') and the Mongolian labels a human is
-      // more likely to type by hand ('Мерчант'/'Харилцагч') — matched
-      // case-insensitively so 'мерчант', 'Мерчант', etc. all work.
-      user_type: /^(merchant|мерчант)$/i.test(String(cols[3] || '').trim()) ? 'merchant' : 'client',
-      spins:     parseInt(cols[4]) || 1,
-      spins_used: 0,
-      enabled:   cols[6] !== 'үгүй',
-      notes:     String(cols[9] || cols[7] || ''), // supports old (8-col) and new (10-col) layouts
+      name:       String(cols[col.name] || ''),
+      phone:      String(cols[col.phone] || ''),
+      code,
+      user_type:  userType,
+      spins:      parseInt(cols[col.spins]) || 1,
+      spins_used: col.used >= 0 ? (parseInt(cols[col.used]) || 0) : 0,
+      enabled:    col.enabled >= 0 ? cols[col.enabled] !== 'үгүй' : true,
+      notes:      col.notes >= 0 ? String(cols[col.notes] || '') : '',
     });
   }
   if (!inserts.length) { showToast('Хүчинтэй мөр олдсонгүй', 'error'); return; }
+
   const { error } = await sbClient.from('clients').upsert(inserts, { onConflict: 'code' });
   if (error) { showToast('Импортод алдаа: ' + error.message, 'error'); return; }
-  showToast(`${inserts.length} харилцагч импортлогдлоо ✓`, 'success');
+  const genNote = generatedCount ? ` (${generatedCount} код автоматаар үүсгэсэн)` : '';
+  showToast(`${inserts.length} харилцагч импортлогдлоо ✓${genNote}`, 'success');
   loadClients();
 }
 
