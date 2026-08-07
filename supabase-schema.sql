@@ -22,21 +22,27 @@ create table if not exists public.clients (
   enabled      boolean     not null default true,
   last_spin_at timestamptz,
   created_at   timestamptz default now(),
-  notes        text
+  notes        text,
+  -- Soft-delete: set by the admin panel's "trash" action. A trashed
+  -- client's code stops working immediately (see policy + record_spin
+  -- below) but the row is kept until someone explicitly deletes it
+  -- forever from the trash view.
+  deleted_at   timestamptz
 );
 
 -- 2. Index for fast code lookups
 create index if not exists clients_code_idx on public.clients (code);
 create index if not exists clients_phone_idx on public.clients (phone);
+create index if not exists clients_deleted_at_idx on public.clients (deleted_at);
 
 -- 3. Row Level Security — clients
 alter table public.clients enable row level security;
 
--- Anon users (loyalty site) can read enabled clients
+-- Anon users (loyalty site) can read enabled, non-trashed clients
 drop policy if exists "Anon read enabled clients" on public.clients;
 create policy "Anon read enabled clients"
   on public.clients for select
-  using (enabled = true);
+  using (enabled = true and deleted_at is null);
 
 -- Admin panel access is scoped to the specific admin account only —
 -- NOT to every authenticated Supabase user. Update the email below
@@ -101,6 +107,7 @@ begin
     last_spin_at = now()
   where code = p_code
     and enabled = true
+    and deleted_at is null
     and spins_used < spins
     and (last_spin_at is null or last_spin_at < now() - make_interval(secs => cooldown_seconds))
   returning id into v_client_id;

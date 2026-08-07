@@ -194,6 +194,24 @@
   .btn-icon.danger:hover { border-color: var(--red); color: var(--red); }
   .btn-icon.success:hover { border-color: var(--green); color: var(--green); }
   .empty-row td { text-align: center; color: var(--muted); padding: 48px; }
+  .btn-sm.danger { border-color: var(--red); color: var(--red); }
+  .btn-sm.danger:hover { background: rgba(229,86,78,.15); }
+
+  /* Gift icon — reflects fulfilment state at a glance instead of
+     always looking the same. Gray = nothing won yet. Amber = won but
+     still pending. Green = fully given out (олгогдсон). */
+  .btn-icon.gift-none    { opacity: .35; filter: grayscale(1); }
+  .btn-icon.gift-pending { border-color: var(--amber); }
+  .btn-icon.gift-done    { border-color: var(--green); background: rgba(16,185,129,.15); }
+
+  /* Batch selection bar */
+  .batch-bar {
+    display: flex; align-items: center; gap: 14px;
+    margin: 0 24px 12px; padding: 10px 16px;
+    background: rgba(51,168,221,.1); border: 1px solid rgba(51,168,221,.3);
+    border-radius: 10px; font-size: .84rem; font-weight: 600;
+  }
+  .batch-actions { display: flex; gap: 8px; }
   .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 6px; vertical-align: middle; border: 1px solid var(--border); }
 
   /* Modal */
@@ -341,7 +359,7 @@
     </div>
 
     <!-- Toolbar -->
-    <div class="toolbar">
+    <div class="toolbar" id="clients-toolbar">
       <input type="text" class="toolbar-search" id="search-input" placeholder="🔍 Нэр, утас, код хайх..." oninput="filterClients()" />
       <select class="filter-sel" id="filter-type" onchange="filterClients()">
         <option value="">Бүгд</option>
@@ -357,6 +375,24 @@
       <input type="file" id="csv-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importFile(event)" />
       <button class="btn-sm btn-export" onclick="exportFile()">📤 CSV/XLSX Татах</button>
       <button class="btn-sm btn-add" onclick="openModal()">+ Шинэ харилцагч</button>
+      <button class="btn-sm" id="trash-toggle-btn" onclick="switchTrashView(true)">🗑️ Хогийн сав (<span id="trash-count">0</span>)</button>
+    </div>
+    <div class="toolbar" id="trash-toolbar" style="display:none;">
+      <button class="btn-sm" onclick="switchTrashView(false)">← Харилцагчид руу буцах</button>
+      <span style="font-size:.82rem;color:var(--muted)">Хогийн сав дахь харилцагчид идэвхтэй сайт дээр ажиллахгүй.</span>
+    </div>
+
+    <!-- Batch action bar — shown once at least one row is selected -->
+    <div class="batch-bar" id="batch-bar" style="display:none;">
+      <span id="batch-count">0 сонгогдсон</span>
+      <div class="batch-actions" id="batch-actions-normal">
+        <button class="btn-sm" onclick="batchTrash()">🗑️ Хогийн саванд хийх</button>
+      </div>
+      <div class="batch-actions" id="batch-actions-trash" style="display:none;">
+        <button class="btn-sm" onclick="batchRestore()">♻️ Сэргээх</button>
+        <button class="btn-sm danger" onclick="batchDeleteForever()">❌ Бүрмөсөн устгах</button>
+      </div>
+      <button class="btn-sm" onclick="clearSelection()" style="margin-left:auto">Цуцлах</button>
     </div>
 
     <!-- Table -->
@@ -364,6 +400,7 @@
       <table>
         <thead>
           <tr>
+            <th style="width:32px"><input type="checkbox" id="select-all-cb" onchange="toggleSelectAllOnPage(this.checked)" /></th>
             <th>Нэр</th>
             <th>Утас</th>
             <th>Код</th>
@@ -376,7 +413,7 @@
           </tr>
         </thead>
         <tbody id="table-body">
-          <tr class="empty-row"><td colspan="9">Ачааллаж байна...</td></tr>
+          <tr class="empty-row"><td colspan="10">Ачааллаж байна...</td></tr>
         </tbody>
       </table>
     </div>
@@ -473,10 +510,19 @@
 <div class="modal-overlay" id="rewards-modal" onclick="closeOnBg(event, 'rewards-modal')">
   <div class="modal" style="max-width:560px;">
     <div class="modal-title">🎁 <span id="rewards-client-name"></span> — хожсон шагналууд</div>
+    <div class="batch-bar" id="rewards-batch-bar" style="display:none;margin:0 0 10px;">
+      <span id="rewards-batch-count">0 сонгогдсон</span>
+      <div class="batch-actions">
+        <button class="btn-sm" onclick="batchFulfillRewards()">✅ Хонжвор олгох</button>
+        <button class="btn-sm danger" onclick="batchDeleteRewards()">🗑️ Устгах</button>
+      </div>
+      <button class="btn-sm" onclick="clearRewardsSelection()" style="margin-left:auto">Цуцлах</button>
+    </div>
     <div class="table-wrap" style="padding:0;overflow-x:auto;">
       <table>
         <thead>
           <tr>
+            <th style="width:32px"><input type="checkbox" id="rewards-select-all-cb" onchange="toggleSelectAllRewards(this.checked)" /></th>
             <th>Шагнал</th>
             <th>Огноо</th>
             <th>Олгосон эсэх</th>
@@ -484,7 +530,7 @@
           </tr>
         </thead>
         <tbody id="rewards-table-body">
-          <tr class="empty-row"><td colspan="4">Ачааллаж байна...</td></tr>
+          <tr class="empty-row"><td colspan="5">Ачааллаж байна...</td></tr>
         </tbody>
       </table>
     </div>
@@ -646,7 +692,9 @@ let allClients   = [];
 let filteredList = []; // list of { client, prize } rows — one per spin, or one with prize:null if never spun
 let currentPage  = 1;
 const PAGE_SIZE  = 20;
-let prizesByClient = {}; // client_id -> [{ label, wonAt, fulfilled }, ...] newest first
+let prizesByClient = {}; // client_id -> [{ id, label, wonAt, fulfilled }, ...] newest first
+let showingTrash  = false;
+let selectedClientIds = new Set();
 
 async function loadClients() {
   if (!sbClient) return;
@@ -659,16 +707,18 @@ async function loadClients() {
   allClients = data || [];
 
   // All prizes per client (not just latest) — a client who spun N
-  // times shows as N rows in the table, one per spin.
+  // times shows as N rows in the table, one per spin. Keeps the row
+  // id too so a single unambiguous prize can be toggled directly from
+  // the clients table without opening the rewards modal.
   const { data: results } = await sbClient
     .from('spin_results')
-    .select('client_id, prize_label, won_at, fulfilled')
+    .select('id, client_id, prize_label, won_at, fulfilled')
     .order('won_at', { ascending: false });
   prizesByClient = {};
   (results || []).forEach(r => {
     if (!r.client_id) return;
     (prizesByClient[r.client_id] = prizesByClient[r.client_id] || [])
-      .push({ label: r.prize_label, wonAt: r.won_at, fulfilled: r.fulfilled });
+      .push({ id: r.id, label: r.prize_label, wonAt: r.won_at, fulfilled: r.fulfilled });
   });
 
   updateStats();
@@ -676,10 +726,12 @@ async function loadClients() {
 }
 
 function updateStats() {
-  const active    = allClients.filter(c => c.enabled);
-  const totalSpins = allClients.reduce((s, c) => s + (c.spins || 0), 0);
-  const usedSpins  = allClients.reduce((s, c) => s + (c.spins_used || 0), 0);
-  document.getElementById('s-total').textContent  = allClients.length;
+  // Stats reflect live (non-trashed) clients only.
+  const live      = allClients.filter(c => !c.deleted_at);
+  const active    = live.filter(c => c.enabled);
+  const totalSpins = live.reduce((s, c) => s + (c.spins || 0), 0);
+  const usedSpins  = live.reduce((s, c) => s + (c.spins_used || 0), 0);
+  document.getElementById('s-total').textContent  = live.length;
   document.getElementById('s-active').textContent = active.length;
   document.getElementById('s-spins').textContent  = totalSpins;
   document.getElementById('s-used').textContent   = usedSpins;
@@ -691,6 +743,7 @@ function filterClients() {
   const stat = document.getElementById('filter-status').value;
 
   const matchingClients = allClients.filter(c => {
+    if (showingTrash ? !c.deleted_at : !!c.deleted_at) return false;
     const matchQ = !q || (c.name||'').toLowerCase().includes(q)
                       || (c.phone||'').includes(q)
                       || (c.code||'').toLowerCase().includes(q);
@@ -712,8 +765,44 @@ function filterClients() {
     }
   });
 
+  document.getElementById('trash-count').textContent = allClients.filter(c => c.deleted_at).length;
+
   currentPage = 1;
   renderTable();
+}
+
+function switchTrashView(show) {
+  showingTrash = show;
+  clearSelection();
+  document.getElementById('clients-toolbar').style.display = show ? 'none' : 'flex';
+  document.getElementById('trash-toolbar').style.display   = show ? 'flex' : 'none';
+  document.getElementById('batch-actions-normal').style.display = show ? 'none' : 'flex';
+  document.getElementById('batch-actions-trash').style.display  = show ? 'flex' : 'none';
+  filterClients();
+}
+
+// ── Row selection (batch actions) ───────────────────────────────
+function toggleClientSelect(id, checked) {
+  if (checked) selectedClientIds.add(id); else selectedClientIds.delete(id);
+  renderTable();
+}
+function toggleSelectAllOnPage(checked) {
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const slice = filteredList.slice(start, start + PAGE_SIZE);
+  const ids = new Set(slice.map(r => r.client.id));
+  if (checked) ids.forEach(id => selectedClientIds.add(id));
+  else ids.forEach(id => selectedClientIds.delete(id));
+  renderTable();
+}
+function clearSelection() {
+  selectedClientIds.clear();
+  renderTable();
+}
+function updateBatchBar() {
+  const bar = document.getElementById('batch-bar');
+  const n = selectedClientIds.size;
+  bar.style.display = n ? 'flex' : 'none';
+  document.getElementById('batch-count').textContent = `${n} сонгогдсон`;
 }
 
 function changePage(dir) {
@@ -733,7 +822,7 @@ function renderTable() {
   document.getElementById('next-btn').disabled = currentPage >= total;
 
   if (!slice.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="9">Илэрц олдсонгүй</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="10">Илэрц олдсонгүй</td></tr>`;
     return;
   }
 
@@ -747,8 +836,35 @@ function renderTable() {
     const prizeCell = prize
       ? `${esc(prize.label)} <span class="badge ${prize.fulfilled ? 'badge-on' : 'badge-wait'}" style="margin-left:4px">${prize.fulfilled ? 'Олгосон' : 'Хүлээгдэж буй'}</span>`
       : '<span style="color:var(--muted)">—</span>';
+
+    // Gift icon state: no prizes won → gray/dim; has unfulfilled prize(s)
+    // → amber outline; all fulfilled → green/filled.
+    const prizes = prizesByClient[c.id] || [];
+    let giftClass = 'gift-none';
+    let giftTitle = 'Шагнал хожоогүй';
+    if (prizes.length) {
+      const allDone = prizes.every(p => p.fulfilled);
+      giftClass = allDone ? 'gift-done' : 'gift-pending';
+      giftTitle = allDone ? 'Шагнал олгогдсон ✓' : 'Шагнал хүлээгдэж буй (дарж олгох)';
+    }
+
+    const actionsCell = showingTrash ? `
+          <div class="actions">
+            <button class="btn-icon success" title="Сэргээх" onclick="restoreClient('${c.id}', '${esc(c.name)}')">♻️</button>
+            <button class="btn-icon danger" title="Бүрмөсөн устгах" onclick="deleteClientForever('${c.id}', '${esc(c.name)}')">❌</button>
+          </div>` : `
+          <div class="actions">
+            <button class="btn-icon ${giftClass}" title="${giftTitle}" onclick="handleGiftClick('${c.id}', '${esc(c.name)}')">🎁</button>
+            <button class="btn-icon" title="Засах" onclick="editClient('${c.id}')">✏️</button>
+            <button class="btn-icon ${c.enabled ? 'danger' : 'success'}" title="${c.enabled ? 'Хаах' : 'Нээх'}"
+              onclick="toggleEnabled('${c.id}', ${c.enabled})">${c.enabled ? '🔒' : '🔓'}</button>
+            <button class="btn-icon" title="Эргэлт нэмэх" onclick="addSpins('${c.id}', '${esc(c.name)}')">➕</button>
+            <button class="btn-icon danger" title="Хогийн саванд хийх" onclick="trashClient('${c.id}', '${esc(c.name)}')">🗑️</button>
+          </div>`;
+
     return `
       <tr>
+        <td><input type="checkbox" ${selectedClientIds.has(c.id) ? 'checked' : ''} onchange="toggleClientSelect('${c.id}', this.checked)" /></td>
         <td>${esc(c.name)}</td>
         <td>${esc(c.phone)}</td>
         <td><code style="font-size:.8rem;color:var(--cyan)">${esc(c.code)}</code></td>
@@ -762,18 +878,11 @@ function renderTable() {
         <td><span class="badge ${c.enabled ? 'badge-on' : 'badge-off'}">${c.enabled ? 'Идэвхтэй' : 'Хаасан'}</span></td>
         <td style="font-size:.78rem;color:var(--muted)">${date}</td>
         <td style="font-size:.82rem">${prizeCell}</td>
-        <td>
-          <div class="actions">
-            <button class="btn-icon" title="Хожсон шагнал" onclick="openRewards('${c.id}', '${esc(c.name)}')">🎁</button>
-            <button class="btn-icon" title="Засах" onclick="editClient('${c.id}')">✏️</button>
-            <button class="btn-icon ${c.enabled ? 'danger' : 'success'}" title="${c.enabled ? 'Хаах' : 'Нээх'}"
-              onclick="toggleEnabled('${c.id}', ${c.enabled})">${c.enabled ? '🔒' : '🔓'}</button>
-            <button class="btn-icon" title="Эргэлт нэмэх" onclick="addSpins('${c.id}', '${esc(c.name)}')">➕</button>
-            <button class="btn-icon danger" title="Устгах" onclick="deleteClient('${c.id}', '${esc(c.name)}')">🗑️</button>
-          </div>
-        </td>
+        <td>${actionsCell}</td>
       </tr>`;
   }).join('');
+
+  updateBatchBar();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -875,25 +984,93 @@ async function addSpins(id, name) {
   loadClients();
 }
 
-async function deleteClient(id, name) {
-  if (!confirm(`"${name}" харилцагчийг устгах уу?\nЭнэ үйлдлийг буцаах боломжгүй.`)) return;
+// ── Trash workflow (soft-delete) ────────────────────────────────
+async function trashClient(id, name) {
+  if (!confirm(`"${name}" харилцагчийг хогийн саванд хийх үү?\nТэдний код идэвхтэй сайт дээр шууд ажиллахгүй болно. Дараа нь сэргээх боломжтой.`)) return;
+  const { error } = await sbClient.from('clients').update({ deleted_at: new Date().toISOString() }).eq('id', id);
+  if (error) { showToast('Алдаа гарлаа', 'error'); return; }
+  showToast('Хогийн саванд хийлээ ✓', 'success');
+  loadClients();
+}
+
+async function restoreClient(id, name) {
+  const { error } = await sbClient.from('clients').update({ deleted_at: null }).eq('id', id);
+  if (error) { showToast('Алдаа гарлаа', 'error'); return; }
+  showToast(`"${name}" сэргээгдлээ ✓`, 'success');
+  loadClients();
+}
+
+async function deleteClientForever(id, name) {
+  if (!confirm(`"${name}" харилцагчийг бүрмөсөн устгах уу?\nЭнэ үйлдлийг буцаах БОЛОМЖГҮЙ. Бүх мэдээлэл устана.`)) return;
   const { error } = await sbClient.from('clients').delete().eq('id', id);
   if (error) { showToast('Устгахад алдаа гарлаа', 'error'); return; }
-  showToast('Устгасан ✓', 'success');
+  showToast('Бүрмөсөн устгалаа ✓', 'success');
   loadClients();
+}
+
+// ── Batch actions ────────────────────────────────────────────────
+async function batchTrash() {
+  const ids = [...selectedClientIds];
+  if (!ids.length) return;
+  if (!confirm(`${ids.length} харилцагчийг хогийн саванд хийх үү?`)) return;
+  const { error } = await sbClient.from('clients').update({ deleted_at: new Date().toISOString() }).in('id', ids);
+  if (error) { showToast('Алдаа гарлаа', 'error'); return; }
+  showToast(`${ids.length} харилцагч хогийн саванд орлоо ✓`, 'success');
+  clearSelection();
+  loadClients();
+}
+
+async function batchRestore() {
+  const ids = [...selectedClientIds];
+  if (!ids.length) return;
+  const { error } = await sbClient.from('clients').update({ deleted_at: null }).in('id', ids);
+  if (error) { showToast('Алдаа гарлаа', 'error'); return; }
+  showToast(`${ids.length} харилцагч сэргээгдлээ ✓`, 'success');
+  clearSelection();
+  loadClients();
+}
+
+async function batchDeleteForever() {
+  const ids = [...selectedClientIds];
+  if (!ids.length) return;
+  if (!confirm(`${ids.length} харилцагчийг бүрмөсөн устгах уу?\nЭнэ үйлдлийг буцаах БОЛОМЖГҮЙ.`)) return;
+  const { error } = await sbClient.from('clients').delete().in('id', ids);
+  if (error) { showToast('Устгахад алдаа гарлаа', 'error'); return; }
+  showToast(`${ids.length} харилцагч бүрмөсөн устгагдлаа ✓`, 'success');
+  clearSelection();
+  loadClients();
+}
+
+// ── Gift icon direct-toggle ──────────────────────────────────────
+async function handleGiftClick(clientId, name) {
+  const prizes = prizesByClient[clientId] || [];
+  if (!prizes.length) {
+    showToast('Энэ харилцагч шагнал хожоогүй байна', 'error');
+    return;
+  }
+  if (prizes.length === 1) {
+    // Single prize — toggle it directly, no modal needed.
+    await toggleFulfilled(prizes[0].id, prizes[0].fulfilled);
+    return;
+  }
+  // Multiple prizes — ambiguous which one to toggle, open the modal.
+  openRewards(clientId, name);
 }
 
 // ══════════════════════════════════════════════════════════════
 //  REWARDS (spin_results) — what a client actually won
 // ══════════════════════════════════════════════════════════════
 let currentRewardsClientId = null;
+let currentRewardsData = [];
+let selectedRewardIds = new Set();
 
 async function openRewards(clientId, name) {
   currentRewardsClientId = clientId;
+  selectedRewardIds.clear();
   document.getElementById('rewards-client-name').textContent = name;
   document.getElementById('rewards-modal').classList.add('open');
   const tbody = document.getElementById('rewards-table-body');
-  tbody.innerHTML = `<tr class="empty-row"><td colspan="4">Ачааллаж байна...</td></tr>`;
+  tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Ачааллаж байна...</td></tr>`;
 
   const { data, error } = await sbClient
     .from('spin_results')
@@ -902,16 +1079,23 @@ async function openRewards(clientId, name) {
     .order('won_at', { ascending: false });
 
   if (error) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="4">Алдаа гарлаа</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Алдаа гарлаа</td></tr>`;
     return;
   }
-  if (!data || !data.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="4">Энэ харилцагч шагнал хожоогүй байна (эсвэл спин хийхэд шагнал бүртгэгдээгүй хуучин үе)</td></tr>`;
+  currentRewardsData = data || [];
+  updateRewardsBatchBar();
+  if (!currentRewardsData.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="5">Энэ харилцагч шагнал хожоогүй байна (эсвэл спин хийхэд шагнал бүртгэгдээгүй хуучин үе)</td></tr>`;
     return;
   }
+  renderRewardsTable();
+}
 
-  tbody.innerHTML = data.map(r => `
+function renderRewardsTable() {
+  const tbody = document.getElementById('rewards-table-body');
+  tbody.innerHTML = currentRewardsData.map(r => `
     <tr>
+      <td><input type="checkbox" ${selectedRewardIds.has(r.id) ? 'checked' : ''} onchange="toggleRewardSelect('${r.id}', this.checked)" /></td>
       <td>${esc(r.prize_label)}</td>
       <td style="font-size:.78rem;color:var(--muted)">${new Date(r.won_at).toLocaleString('mn-MN')}</td>
       <td><span class="badge ${r.fulfilled ? 'badge-on' : 'badge-wait'}">${r.fulfilled ? 'Олгосон' : 'Хүлээгдэж буй'}</span></td>
@@ -920,6 +1104,60 @@ async function openRewards(clientId, name) {
           onclick="toggleFulfilled('${r.id}', ${r.fulfilled})">${r.fulfilled ? '↩️' : '✅'}</button>
       </td>
     </tr>`).join('');
+}
+
+function toggleRewardSelect(id, checked) {
+  if (checked) selectedRewardIds.add(id); else selectedRewardIds.delete(id);
+  updateRewardsBatchBar();
+}
+function toggleSelectAllRewards(checked) {
+  if (checked) currentRewardsData.forEach(r => selectedRewardIds.add(r.id));
+  else selectedRewardIds.clear();
+  renderRewardsTable();
+  updateRewardsBatchBar();
+}
+function clearRewardsSelection() {
+  selectedRewardIds.clear();
+  renderRewardsTable();
+  updateRewardsBatchBar();
+}
+function updateRewardsBatchBar() {
+  const bar = document.getElementById('rewards-batch-bar');
+  const n = selectedRewardIds.size;
+  bar.style.display = n ? 'flex' : 'none';
+  document.getElementById('rewards-batch-count').textContent = `${n} сонгогдсон`;
+}
+
+async function batchFulfillRewards() {
+  const ids = [...selectedRewardIds];
+  if (!ids.length) return;
+  const email = document.getElementById('topbar-user').textContent || 'admin';
+  const { error } = await sbClient.from('spin_results')
+    .update({ fulfilled: true, fulfilled_at: new Date().toISOString(), fulfilled_by: email })
+    .in('id', ids);
+  if (error) { showToast('Алдаа гарлаа', 'error'); return; }
+  showToast(`${ids.length} шагнал олгосон гэж тэмдэглэлээ ✓`, 'success');
+  clearRewardsSelection();
+  if (currentRewardsClientId) {
+    const c = allClients.find(x => x.id === currentRewardsClientId);
+    openRewards(currentRewardsClientId, c ? c.name : '');
+  }
+  loadClients();
+}
+
+async function batchDeleteRewards() {
+  const ids = [...selectedRewardIds];
+  if (!ids.length) return;
+  if (!confirm(`${ids.length} шагналын бүртгэлийг устгах уу?\nЭнэ үйлдлийг буцаах боломжгүй.`)) return;
+  const { error } = await sbClient.from('spin_results').delete().in('id', ids);
+  if (error) { showToast('Устгахад алдаа гарлаа', 'error'); return; }
+  showToast(`${ids.length} шагнал устгагдлаа ✓`, 'success');
+  clearRewardsSelection();
+  if (currentRewardsClientId) {
+    const c = allClients.find(x => x.id === currentRewardsClientId);
+    openRewards(currentRewardsClientId, c ? c.name : '');
+  }
+  loadClients();
 }
 
 async function toggleFulfilled(id, current) {
