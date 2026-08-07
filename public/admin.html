@@ -196,6 +196,8 @@
   .empty-row td { text-align: center; color: var(--muted); padding: 48px; }
   .btn-sm.danger { border-color: var(--red); color: var(--red); }
   .btn-sm.danger:hover { background: rgba(229,86,78,.15); }
+  .btn-sm.success { border-color: var(--green); color: var(--green); }
+  .btn-sm.success:hover { background: rgba(16,185,129,.15); }
 
   /* Gift icon — reflects fulfilment state at a glance instead of
      always looking the same. Gray = nothing won yet. Amber = won but
@@ -370,6 +372,8 @@
         <option value="">Бүгд</option>
         <option value="true">Идэвхтэй</option>
         <option value="false">Идэвхгүй</option>
+        <option value="fulfilled">Шагнал олгосон</option>
+        <option value="unfulfilled">Шагнал олгоогүй</option>
       </select>
       <button class="btn-sm btn-import" onclick="document.getElementById('csv-file').click()" title="Заавал: Нэр, Утас багана. Мөн байвал ашиглана: Код, Төрөл (Мерчант/Харилцагч), Эргэлт (эсвэл Эрхийн тоо), Идэвхтэй, Тэмдэглэл. Код баганагүй эсвэл хоосон бол систем автоматаар давхцахгүй код үүсгэнэ.">📥 CSV/XLSX Оруулах</button>
       <input type="file" id="csv-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importFile(event)" />
@@ -387,6 +391,7 @@
       <span id="batch-count">0 сонгогдсон</span>
       <div class="batch-actions" id="batch-actions-normal">
         <button class="btn-sm" onclick="batchTrash()">🗑️ Хогийн саванд хийх</button>
+        <button class="btn-sm success" onclick="batchMarkGiven()">✅ Шагнал олгосноор тэмдэглэх</button>
       </div>
       <div class="batch-actions" id="batch-actions-trash" style="display:none;">
         <button class="btn-sm" onclick="batchRestore()">♻️ Сэргээх</button>
@@ -423,6 +428,15 @@
       <button class="page-btn" id="prev-btn" onclick="changePage(-1)" disabled>← Өмнөх</button>
       <span id="page-info">1 / 1</span>
       <button class="page-btn" id="next-btn" onclick="changePage(1)" disabled>Дараах →</button>
+      <span style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);margin-left:16px">
+        Нэг хуудсанд:
+        <select class="filter-sel" id="page-size-sel" onchange="changePageSize(this.value)" style="padding:4px 8px">
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        мөр
+      </span>
     </div>
   </div>
 
@@ -691,7 +705,7 @@ function switchView(view) {
 let allClients   = [];
 let filteredList = []; // list of { client, prize } rows — one per spin, or one with prize:null if never spun
 let currentPage  = 1;
-const PAGE_SIZE  = 20;
+let PAGE_SIZE    = 20;
 let prizesByClient = {}; // client_id -> [{ id, label, wonAt, fulfilled }, ...] newest first
 let showingTrash  = false;
 let selectedClientIds = new Set();
@@ -748,7 +762,15 @@ function filterClients() {
                       || (c.phone||'').includes(q)
                       || (c.code||'').toLowerCase().includes(q);
     const matchT = !type || c.user_type === type;
-    const matchS = stat === '' || String(c.enabled) === stat;
+    let matchS = true;
+    if (stat === 'true' || stat === 'false') {
+      matchS = String(c.enabled) === stat;
+    } else if (stat === 'fulfilled' || stat === 'unfulfilled') {
+      const prizes = prizesByClient[c.id] || [];
+      matchS = stat === 'fulfilled'
+        ? prizes.some(p => p.fulfilled)
+        : prizes.some(p => !p.fulfilled);
+    }
     return matchQ && matchT && matchS;
   });
 
@@ -808,6 +830,12 @@ function updateBatchBar() {
 function changePage(dir) {
   const max = Math.ceil(filteredList.length / PAGE_SIZE) || 1;
   currentPage = Math.min(Math.max(1, currentPage + dir), max);
+  renderTable();
+}
+
+function changePageSize(val) {
+  PAGE_SIZE = parseInt(val, 10) || 20;
+  currentPage = 1;
   renderTable();
 }
 
@@ -1026,6 +1054,28 @@ async function batchRestore() {
   const { error } = await sbClient.from('clients').update({ deleted_at: null }).in('id', ids);
   if (error) { showToast('Алдаа гарлаа', 'error'); return; }
   showToast(`${ids.length} харилцагч сэргээгдлээ ✓`, 'success');
+  clearSelection();
+  loadClients();
+}
+
+async function batchMarkGiven() {
+  const ids = [...selectedClientIds];
+  if (!ids.length) return;
+  const unfulfilledIds = [];
+  ids.forEach(cid => {
+    (prizesByClient[cid] || []).forEach(p => { if (!p.fulfilled) unfulfilledIds.push(p.id); });
+  });
+  if (!unfulfilledIds.length) {
+    showToast('Сонгосон харилцагчдад хүлээгдэж буй шагнал алга', 'error');
+    return;
+  }
+  if (!confirm(`${ids.length} харилцагчийн ${unfulfilledIds.length} шагналыг олгосон гэж тэмдэглэх үү?`)) return;
+  const email = document.getElementById('topbar-user').textContent || 'admin';
+  const { error } = await sbClient.from('spin_results')
+    .update({ fulfilled: true, fulfilled_at: new Date().toISOString(), fulfilled_by: email })
+    .in('id', unfulfilledIds);
+  if (error) { showToast('Алдаа гарлаа', 'error'); return; }
+  showToast(`${unfulfilledIds.length} шагнал олгосон гэж тэмдэглэлээ ✓`, 'success');
   clearSelection();
   loadClients();
 }
