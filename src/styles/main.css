@@ -666,9 +666,9 @@ html, body {
 .ce-step { animation: fadeUp .25s cubic-bezier(.22,1,.36,1) both; }
 
 .ce-eyebrow {
-  font-size: .74rem;
+  font-size: .82rem;
   font-weight: 800;
-  letter-spacing: .08em;
+  letter-spacing: .06em;
   text-transform: uppercase;
   color: var(--cyan-dark);
   margin-bottom: 5px;
@@ -676,11 +676,12 @@ html, body {
 }
 
 .ce-title {
-  font-size: 1.65rem;
+  font-size: 1.8rem;
   font-weight: 800;
   color: var(--text-navy);
   line-height: 1.2;
   margin-bottom: 6px;
+  white-space: nowrap;
 }
 
 .ce-context {
@@ -1418,7 +1419,8 @@ canvas.spin-wheel {
   .ce-owl-bubble-badge { width: 28px; height: 28px; font-size: .9rem; top: -13px; left: -10px; }
   .ce-owl-bubble p { font-size: .68rem; line-height: 1.4; }
   .ce-card-body { padding: 22px 22px 28px; }
-  .ce-eyebrow { font-size: .64rem; letter-spacing: .05em; }
+  .ce-eyebrow { font-size: .7rem; letter-spacing: .04em; }
+  .ce-title { font-size: 1.55rem; }
   canvas.spin-wheel { width: 320px !important; height: 320px !important; }
   .ss-spin-btn  { padding: 16px 44px; font-size: 1rem; }
   .rm-card      { border-radius: 20px; }
