@@ -258,7 +258,7 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .bg-orb, .bg-spotlight, .bg-particles span, .bg-gold span, .bg-goldsparkle, .bg-gold-bloom, .ce-deco-badge,
   .ce-box-backdrop, .ce-box-glow, .ce-card-glow, .ce-sparkle, .ce-btn,
-  .ss-spin-btn, .ce-owl-bubble, .ce-signoff, .ce-signoff-spark, .ce-signoff-heart, .ce-owl-flip {
+  .ss-spin-btn, .ce-owl-bubble, .ce-signoff, .ce-signoff-spark, .ce-signoff-heart, .ce-signoff-star, .ce-owl-flip {
     animation: none !important;
   }
 }
@@ -451,15 +451,10 @@ html, body {
   font-size: .95rem;
   animation: decoTwinkle 2.6s ease-in-out infinite;
 }
-.ce-signoff-caption {
-  height: 20px;
-  width: auto;
-  opacity: .95;
-  margin-bottom: 6px;
-}
 .ce-signoff-mark {
   position: relative;
   display: inline-block;
+  margin-top: 6px;
 }
 .ce-signoff-signature {
   height: 52px;
@@ -474,6 +469,17 @@ html, body {
   filter: drop-shadow(0 2px 8px rgba(255,212,59,.5));
   animation: decoFloat 3.4s ease-in-out infinite;
 }
+.ce-signoff-star {
+  position: absolute;
+  color: #FFD43B;
+  filter: drop-shadow(0 0 6px rgba(255,212,59,.8));
+  animation: decoTwinkle 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+.ce-signoff-star.st1 { top: -18px; left: -22px; font-size: .85rem; animation-delay: 0s; }
+.ce-signoff-star.st2 { top: -14px; right: 18px; font-size: .55rem; animation-delay: .7s; }
+.ce-signoff-star.st3 { bottom: -10px; left: 30%; font-size: .6rem; animation-delay: 1.4s; }
+.ce-signoff-star.st4 { bottom: 4px; right: -20px; font-size: .7rem; animation-delay: 2.1s; }
 .ce-signoff-contact {
   display: flex;
   align-items: center;

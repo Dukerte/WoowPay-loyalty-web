@@ -79,8 +79,11 @@ export function CodeEntry(
            couple of quiet contact touchpoints. -->
       <div class="ce-signoff">
         <div class="ce-signoff-divider"><span class="ce-signoff-spark">✦</span></div>
-        <img src="/client-caption.webp" class="ce-signoff-caption" alt="Харилцагч танд" />
         <div class="ce-signoff-mark">
+          <span class="ce-signoff-star st1" aria-hidden="true">✦</span>
+          <span class="ce-signoff-star st2" aria-hidden="true">✦</span>
+          <span class="ce-signoff-star st3" aria-hidden="true">✦</span>
+          <span class="ce-signoff-star st4" aria-hidden="true">✦</span>
           <img src="/oirbaiy-signature.webp" class="ce-signoff-signature" alt="Ойр Байя" />
           <img src="/heart-accent.webp" class="ce-signoff-heart" alt="" aria-hidden="true" />
         </div>
