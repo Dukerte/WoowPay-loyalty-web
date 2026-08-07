@@ -30,6 +30,13 @@ function showEndScreen(won: Prize[], code: string) {
 
 showCodeEntry();
 
+// iOS Safari never fires the CSS :active pseudo-class on tap unless
+// some element on the page has a touchstart listener — without this,
+// every tap-scale/press effect on buttons, chips and cards (all real
+// CSS rules, not missing) silently never triggers on iPhone. This is
+// a no-op handler that exists purely to switch that behavior on.
+document.addEventListener('touchstart', () => {}, { passive: true });
+
 // ── Footer year + rules modal (persistent, outside the router) ──
 const yearEl = document.getElementById('footer-year');
 if (yearEl) yearEl.textContent = String(new Date().getFullYear());

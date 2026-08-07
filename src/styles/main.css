@@ -258,7 +258,7 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .bg-orb, .bg-spotlight, .bg-particles span, .bg-gold span, .bg-goldsparkle, .bg-gold-bloom, .ce-deco-badge,
   .ce-box-backdrop, .ce-box-glow, .ce-card-glow, .ce-sparkle, .ce-btn,
-  .ss-spin-btn, .ce-owl-bubble, .ce-signoff, .ce-signoff-spark, .ce-signoff-heart {
+  .ss-spin-btn, .ce-owl-bubble, .ce-signoff, .ce-signoff-spark, .ce-signoff-heart, .ce-owl-flip {
     animation: none !important;
   }
 }
@@ -488,6 +488,7 @@ html, body {
 }
 .ce-signoff-social svg, .ce-signoff-social img { width: 100%; height: 100%; object-fit: contain; }
 .ce-signoff-social:hover { transform: translateY(-3px) scale(1.06); filter: drop-shadow(0 10px 22px rgba(6,43,102,.55)); }
+.ce-signoff-social:active { transform: scale(.92); }
 .ce-signoff-qr {
   display: flex;
   flex-direction: column;
@@ -504,6 +505,7 @@ html, body {
   transition: transform .18s cubic-bezier(.34,1.56,.64,1);
 }
 .ce-signoff-qr:hover img { transform: translateY(-3px) scale(1.05); }
+.ce-signoff-qr:active img { transform: scale(.94); }
 .ce-signoff-qr span {
   font-size: .64rem;
   font-weight: 600;
@@ -643,12 +645,22 @@ html, body {
   pointer-events: none;
   transition: transform .4s cubic-bezier(.34,1.56,.64,1);
 }
-.ce-card:hover .ce-owl { transform: translateY(-6px) rotate(2deg); }
+.ce-card:hover .ce-owl { animation-play-state: paused; transform: translateY(-6px) rotate(2deg); }
 /* Flip the mascot so its pointing gesture reads toward the other
    side — mirroring the image also mirrors the small "WOOW" print on
-   its shirt, but at this display size that's not legible either way. */
-.ce-owl-flip { transform: scaleX(-1); }
-.ce-card:hover .ce-owl-flip { transform: scaleX(-1) translateY(-6px) rotate(-2deg); }
+   its shirt, but at this display size that's not legible either way.
+   The idle bob keeps the mascot feeling alive on its own — :hover
+   never fires on a touch device, so without this the mobile owl
+   (most of our traffic) just sat there completely static. */
+.ce-owl-flip {
+  transform: scaleX(-1);
+  animation: owlIdleBob 3.6s ease-in-out infinite;
+}
+.ce-card:hover .ce-owl-flip { animation-play-state: paused; transform: scaleX(-1) translateY(-6px) rotate(-2deg); }
+@keyframes owlIdleBob {
+  0%, 100% { transform: scaleX(-1) translateY(0) rotate(0deg); }
+  50%      { transform: scaleX(-1) translateY(-5px) rotate(-1.5deg); }
+}
 
 .ce-form { flex: 1; min-width: 0; }
 .ce-step { animation: fadeUp .25s cubic-bezier(.22,1,.36,1) both; }
@@ -785,6 +797,11 @@ html, body {
   background: var(--ice-blue);
   border-color: rgba(51,168,221,.35);
   transform: translateY(-1px);
+}
+.ce-hint-chip:active {
+  background: var(--ice-blue);
+  border-color: rgba(51,168,221,.4);
+  transform: scale(.96);
 }
 .ce-hint-chip .label {
   font-size: .62rem;
@@ -1373,7 +1390,15 @@ canvas.spin-wheel {
   .ce-owl-col {
     width: auto;
     max-width: 240px;
-    margin-bottom: 10px;
+    margin-bottom: 18px;
+  }
+  /* The mascot's own -32px bottom margin was tuned for sitting beside
+     the form (deliberately overlapping its baseline) — stacked above
+     the form instead, that same negative margin pulls the form's text
+     up on top of the owl's hand. Reset it here. */
+  .ce-owl-col .ce-owl {
+    margin-right: 0;
+    margin-bottom: 0;
   }
   .ce-form { width: 100%; }
   /* Step 2's mascot is a bare .ce-owl directly in .ce-card-body (no
