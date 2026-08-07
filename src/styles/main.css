@@ -1357,9 +1357,38 @@ canvas.spin-wheel {
 }
 
 /* ─── Responsive ─────────────────────────────────────────── */
+/* Below this width, owl-column-beside-form no longer has room to
+   breathe no matter how far each piece is individually shrunk — the
+   input, button and the two hint chips need a real minimum width to
+   stay legible. So instead of squeezing both columns side by side,
+   stack the owl (bubble + mascot) above the form as full-width
+   blocks. This is the layout every phone gets, not just very narrow
+   ones — most phones (360–430px) fall in this range. */
+@media (max-width: 640px) {
+  .ce-card-body {
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .ce-owl-col {
+    width: auto;
+    max-width: 240px;
+    margin-bottom: 10px;
+  }
+  .ce-form { width: 100%; }
+  /* Step 2's mascot is a bare .ce-owl directly in .ce-card-body (no
+     owl-col wrapper) — its negative margins assume it's bottom-
+     aligned beside the form, which only makes sense side by side.
+     Reset those once it's stacked above the form instead. */
+  .ce-card-body > .ce-owl {
+    width: 130px;
+    margin: 0 0 4px;
+  }
+}
+
 @media (max-width: 420px) {
   .ce-owl       { width: 128px; }
-  .ce-owl-col   { width: 138px; }
+  .ce-owl-col   { max-width: 210px; }
   .ce-owl-bubble { padding: 12px 12px 11px; border-radius: 18px; }
   .ce-owl-bubble-badge { width: 28px; height: 28px; font-size: .9rem; top: -13px; left: -10px; }
   .ce-owl-bubble p { font-size: .68rem; line-height: 1.4; }
