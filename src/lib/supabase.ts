@@ -46,11 +46,23 @@ export async function selectMany<T>(
   catch { return []; }
 }
 
-/** Call a stored RPC function */
+/** Call a stored RPC function (fire-and-forget) */
 export async function rpc(fn: string, args: Record<string, string>): Promise<void> {
   await fetch(`${SUPA_URL}/rest/v1/rpc/${fn}`, {
     method:  'POST',
     headers: headers(),
     body:    JSON.stringify(args),
   });
+}
+
+/** Call a stored RPC function and return its parsed JSON result */
+export async function rpcCall<T>(fn: string, args: Record<string, unknown>): Promise<T | null> {
+  const res = await fetch(`${SUPA_URL}/rest/v1/rpc/${fn}`, {
+    method:  'POST',
+    headers: headers(),
+    body:    JSON.stringify(args),
+  });
+  if (!res.ok) return null;
+  try { return await res.json() as T; }
+  catch { return null; }
 }

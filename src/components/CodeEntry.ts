@@ -154,7 +154,20 @@ export function CodeEntry(
         );
       }
     });
-    input.focus();
+
+    // A code delivered via the Messenger bot arrives as
+    // loyalty.woowpay.mn/?code=WC-XXXXXX — prefill and auto-check it
+    // so the person lands straight in the flow instead of re-typing
+    // what the bot just gave them. Strip the param from the URL right
+    // away so refreshing or sharing the link doesn't replay it.
+    const urlCode = new URLSearchParams(window.location.search).get('code');
+    if (urlCode) {
+      window.history.replaceState({}, '', window.location.pathname);
+      input.value = formatCodeInput(urlCode);
+      btn.click();
+    } else {
+      input.focus();
+    }
   }
 
   // ── Step 2: Phone verification ────────────────────────────

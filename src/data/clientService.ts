@@ -1,12 +1,13 @@
-import { hasSupabase, selectOne, rpc } from '../lib/supabase';
+import { hasSupabase, selectOne, rpc, rpcCall } from '../lib/supabase';
 import { validateCode }                from './codeValidator';
 import { verifyPhone }                 from './records';
 import type { CodeValidationResult }   from '../types';
 
+// name and phone are intentionally absent — the anon key can no longer
+// select those columns (see verify_phone_match RPC below for phone
+// checks), so they'd never actually be populated here.
 interface SupabaseClient {
   id:         string;
-  name:       string;
-  phone:      string;
   code:       string;
   user_type:  'merchant' | 'client';
   spins:      number;
@@ -56,12 +57,16 @@ export async function verifyPhoneRemote(code: string, phone: string): Promise<bo
   if (!hasSupabase()) return verifyPhone(code, phone);
 
   try {
-    const client = await selectOne<SupabaseClient>('clients', {
-      code:    `eq.${code.toUpperCase()}`,
-      enabled: 'eq.true',
+    // The comparison happens server-side now (verify_phone_match RPC) —
+    // the raw phone column was removed from what the anon key can
+    // select directly, so the browser never sees another client's
+    // phone number even transiently.
+    const result = await rpcCall<boolean>('verify_phone_match', {
+      p_code:  code.toUpperCase(),
+      p_phone: phone,
     });
-    if (!client || !client.phone) return true; // no phone registered → open
-    return verifyPhone(code, phone, client.phone);
+    if (result === null) return verifyPhone(code, phone); // network/RPC error → static fallback
+    return result;
   } catch {
     return verifyPhone(code, phone); // network error → static fallback
   }
