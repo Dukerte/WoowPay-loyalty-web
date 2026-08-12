@@ -197,21 +197,65 @@ revoke all on public.bot_config from anon, authenticated;
 create table if not exists public.bot_nodes (
   key           text primary key,
   text          text not null,
+  template_type text not null default 'text'
+                  check (template_type in ('text','button','list','generic')),
   quick_replies jsonb not null default '[]'::jsonb, -- [{ "title": "...", "target": "node_key" }]
   buttons       jsonb not null default '[]'::jsonb, -- [{ "type": "web_url"|"phone_number", "title": "...", "url"/"payload": "..." }]
+  list_items    jsonb not null default '[]'::jsonb, -- UNUSED IN PRACTICE, see note below
+  cards         jsonb not null default '[]'::jsonb, -- [{ "title", "subtitle", "image_url", "buttons": [...] }]
   updated_at    timestamptz not null default now()
 );
 
 alter table public.bot_nodes enable row level security;
 revoke all on public.bot_nodes from anon, authenticated;
 
+-- template_type controls how messenger-webhook renders a node:
+--   text    — plain message + quick-reply chips (the default; used for
+--             every menu screen, e.g. root, client, merchant).
+--   button  — Facebook's Button Template (used for the phone-number
+--             contact screens; up to 3 buttons).
+--   generic — Facebook's Generic Template: one image "hero" card (title
+--             + subtitle + optional buttons) sent before the text
+--             message. Used for promo/single-message screens (loan
+--             products, app download, wheel prompt, merchant benefits).
+--   list    — Facebook's List Template. IMPLEMENTED BUT NOT USABLE:
+--             live testing (2026-08-12) showed Facebook's Graph API
+--             rejects list templates whose element buttons use type
+--             "postback" (our internal node-navigation payloads) with a
+--             generic "(#-1) Unexpected internal error" — confirmed
+--             reproducible with and without image_url. List Template's
+--             per-item actions appear to only reliably support type
+--             "web_url" (opening an external link), which doesn't fit
+--             our in-bot navigation. Do not set a node to 'list' unless
+--             this is revisited — the column/code path is left in place
+--             in case Meta changes this, but every menu node currently
+--             uses 'text' instead.
+--
+-- Placeholder card images use https://placehold.co/{w}x{h}/10213F/FFD43B.png?text=WoowPay
+-- (brand navy/gold) — swap image_url values for real photography/art
+-- whenever it's ready; no code change needed, just update the row.
+--
 -- See the add_client_soft_delete-era migration history / apply_migration
 -- calls for the actual seeded node content (root, client, client_loan_
 -- purchase, client_loan_cash, client_app, client_guide + 4 leaves,
 -- client_contact, merchant, merchant_new + benefits/guide, merchant_
 -- existing + sales/find guides, merchant_contact, wheel). Query
--- `select key, text, quick_replies, buttons from public.bot_nodes`
--- in the SQL editor to see/edit live content.
+-- `select key, text, template_type, quick_replies, buttons, cards from
+-- public.bot_nodes` in the SQL editor to see/edit live content.
+
+-- bot_debug_log — diagnostic table added while troubleshooting the list
+-- template rejection above. Records any failed Send API call (status
+-- code + Graph API error body + the payload that triggered it). Safe to
+-- leave in place; locked down the same way as bot_config/bot_nodes.
+create table if not exists public.bot_debug_log (
+  id           bigserial primary key,
+  created_at   timestamptz not null default now(),
+  status_code  int,
+  error_body   text,
+  payload      jsonb
+);
+alter table public.bot_debug_log enable row level security;
+revoke all on public.bot_debug_log from anon, authenticated;
 
 -- ============================================================
 -- Still recommended, dashboard-only (not SQL):
