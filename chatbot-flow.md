@@ -1,19 +1,16 @@
 # WoowPay Messenger Chatbot — Full Flow (editable)
 
-This is the complete content of the custom Messenger bot, exactly as it's live on the test Page right now — updated with emojis and the new card visuals we just added. Edit the text/labels/links/cards below and send it back — I'll re-import it into the database as-is, no redeploy needed.
+This is the complete content of the custom Messenger bot, exactly as it's live on the test Page right now. Edit the text/labels/links/cards below and send it back — I'll re-import it into the database as-is, no redeploy needed.
 
-**What changed since the last version of this file:**
-- Added emojis throughout (💙 for warmth, 📞/☎️ for contact points, plus icons on most menu labels).
-- Promo screens (loan products, app download, wheel, merchant benefits) now show an image card above the text — currently a plain navy/gold placeholder card since we don't have real photos yet. Send me real images whenever ready and I'll drop them in.
-- Tried a true vertical list layout (Facebook's List Template) for the bigger menus — Facebook's API rejected it every time we tested (a platform limitation: List Template's per-item buttons only reliably support opening a web link, not our internal bot navigation). So menus stayed as quick-reply chips, which do scroll horizontally but are the only reliable option Facebook gives us for in-bot navigation right now.
+**Latest change:** every menu screen (root's children — Харилцагч, Мерчант, and their submenus) now shows as a swipeable card carousel with a placeholder image per option, instead of plain text chips. Tapping "Сонгох" on a card navigates exactly like the old chips did. Root itself, and the Буцах/Холбогдох chips, stay as simple quick-reply chips since those don't need a picture.
 
 **How to edit safely:**
-- `KEY` is the screen's internal id — don't change existing keys unless you want to rename that screen (tell me if you do, other screens link to it by key).
-- `Message:` is the text the bot sends. Line breaks show as line breaks in Messenger.
-- `Quick replies:` are the chip buttons under the message — `Label → target_key`. **Facebook caps each label at 20 characters.**
-- `Card:` (only on some screens) is the image hero shown above the message — title, subtitle, and optional buttons. Image is currently a placeholder; send real art/photos to replace it.
+- `KEY` is the screen's internal id — don't rename without telling me (other screens link to it by key).
+- `Message:` is the text sent alongside/before the cards. Line breaks show as line breaks in Messenger.
+- `Card:` entries are the carousel items — title, subtitle, and the target screen the "Сонгох" button jumps to. Image is currently a plain navy/gold placeholder — send me real photos/art whenever ready and I'll swap them in, no other changes needed.
+- `Quick replies:` are the small chip buttons — `Label → target_key`, capped at 20 characters by Facebook.
 - `Buttons:` are the bigger tappable buttons on contact/app screens (phone numbers or web links) — max 3.
-- Placeholder lines marked `[COMING SOON — video not yet linked]` are guide videos not recorded yet. Send me the URL when ready.
+- Placeholder lines marked `[COMING SOON — video not yet linked]` are guide videos not recorded yet.
 
 ---
 
@@ -34,20 +31,22 @@ This is the complete content of the custom Messenger bot, exactly as it's live o
 **Message:**
 Бид хамгийн уян хатан нөхцөлтэй зээлийн үйлчилгээг санал болгож байна. 💙
 
+**Cards (carousel):**
+1. Барааны зээл 🛍️ — "Хүүгүй, шимтгэлгүй зээл" → client_loan_purchase
+2. Бэлэн мөнгөний зээл 💵 — "15/30 хоногийн богино хугацаа" → client_loan_cash
+3. Апп татах 📲 — "Татаж аваад шууд бүртгүүлээрэй" → client_app
+4. Заавар үзэх 🎬 — "Алхам алхмаар зааварчилгаа" → client_guide
+
 **Quick replies:**
-- Барааны зээл 🛍️ → client_loan_purchase
-- Бэлэн мөнгөний зээл 💵 → client_loan_cash
-- Апп татах 📲 → client_app
-- Заавар үзэх 🎬 → client_guide
 - Холбогдох 📞 → client_contact
 - Буцах → root
 
 ---
 
 ### KEY: client_loan_purchase
-**Card:** title "Барааны зээл 🛍️", subtitle "Хямд бараагаа хүүгүй авах боломж", [placeholder image]
+**Card (hero):** "Барааны зээл 🛍️" — "Хямд бараагаа хүүгүй авах боломж"
 
-**Message (sent after the card):**
+**Message (after the card):**
 ✅ Хүүгүй
 ✅ Шимтгэлгүй
 ✅ Урьдчилгаагүй
@@ -60,9 +59,9 @@ This is the complete content of the custom Messenger bot, exactly as it's live o
 ---
 
 ### KEY: client_loan_cash
-**Card:** title "Бэлэн мөнгөний зээл 💵", subtitle "Шуурхай, хялбар зээл", [placeholder image]
+**Card (hero):** "Бэлэн мөнгөний зээл 💵" — "Шуурхай, хялбар зээл"
 
-**Message (sent after the card):**
+**Message (after the card):**
 ✅ Хугацаа — 15/30 хоног
 ✅ Хугацаандаа эргэн төлвөл хүү бодогдохгүй 💙
 
@@ -72,7 +71,7 @@ This is the complete content of the custom Messenger bot, exactly as it's live o
 ---
 
 ### KEY: client_app
-**Card:** title "WoowPay аппликейшн 📲", subtitle "Хялбар бүртгэл, шуурхай үйлчилгээ", [placeholder image]
+**Card (hero):** "WoowPay аппликейшн 📲" — "Хялбар бүртгэл, шуурхай үйлчилгээ"
 **Card button:** Апп татах → https://onelink.to/4z2e53 (web link)
 
 **Quick replies:**
@@ -84,11 +83,13 @@ This is the complete content of the custom Messenger bot, exactly as it's live o
 **Message:**
 Аль зааврыг үзэх вэ? 🎬
 
+**Cards (carousel):**
+1. Бүртгэл үүсгэх 📝 — "Апп дээр хэрхэн бүртгүүлэх вэ" → client_guide_register
+2. Худалдан авалт хийх 🛒 — "Дэлгүүрт хэрхэн ашиглах вэ" → client_guide_purchase
+3. Зээл төлөх 💳 — "QPay-ээр хэрхэн төлөх вэ" → client_guide_pay
+4. Зээл сунгах 🔄 — "Хугацаа хэрхэн сунгах вэ" → client_guide_extend
+
 **Quick replies:**
-- Бүртгэл үүсгэх 📝 → client_guide_register
-- Худ. авалт хийх 🛒 → client_guide_purchase
-- Зээл төлөх 💳 → client_guide_pay
-- Зээл сунгах 🔄 → client_guide_extend
 - Буцах → client
 
 ---
@@ -155,9 +156,11 @@ WoowPay аппликейшинд бүртгүүлэх зааврын видео 
 **Message:**
 WoowPay-тай хэрхэн хамтран ажиллах хүсэлтэйгээ сонгоно уу. 🤝
 
+**Cards (carousel):**
+1. Шинээр бүртгүүлэх ✨ — "Мерчантаар шинээр нэгдэх" → merchant_new
+2. Бүртгэлтэй мерчант 🏬 — "Одоо байгаа мерчантын үйлчилгээ" → merchant_existing
+
 **Quick replies:**
-- Шинээр бүртгүүлэх ✨ → merchant_new
-- Бүртгэлтэй мерчант 🏬 → merchant_existing
 - Буцах → root
 
 ---
@@ -166,18 +169,20 @@ WoowPay-тай хэрхэн хамтран ажиллах хүсэлтэйгээ
 **Message:**
 Бидэнтэй хамтран ажиллаж борлуулалтаа нэмэгдүүлээрэй. 📈
 
+**Cards (carousel):**
+1. Давуу тал 🌟 — "Хамтран ажиллах ач холбогдол" → merchant_new_benefits
+2. Бүртгүүлэх заавар 🎬 — "Алхам алхмаар зааварчилгаа" → merchant_new_guide
+
 **Quick replies:**
-- Давуу тал 🌟 → merchant_new_benefits
-- Бүртгүүлэх заавар 🎬 → merchant_new_guide
 - Холбогдох 📞 → merchant_contact
 - Буцах → merchant
 
 ---
 
 ### KEY: merchant_new_benefits
-**Card:** title "WoowPay-тай хамтрахуй 🌟", subtitle "Хүүгүй, шимтгэлгүй хуваан төлөлт", [placeholder image]
+**Card (hero):** "WoowPay-тай хамтрахуй 🌟" — "Хүүгүй, шимтгэлгүй хуваан төлөлт"
 
-**Message (sent after the card):**
+**Message (after the card):**
 WooW үйлчилгээг өөрийн бизнестээ нэвтрүүлэхээр холбогдож буй танд баярлалаа. 💙
 
 Бизнес эрхлэгч танд WooW үйлчилгээний гол нөхцөл шаардлагыг хангаж бүхий л бараа бүтээгдхүүн үйлчилгээгээ хүүгүй, шимтгэлгүй, хуваан төлөх нөхцлөөр хэрэглэгчдэд бүрэн хүргэж хамтран ажиллах боломжтой. ✅
@@ -204,9 +209,11 @@ WooW үйлчилгээг өөрийн бизнестээ нэвтрүүлэхэ
 **Message:**
 Мерчантын үйлчилгээнүүд: 🏬
 
+**Cards (carousel):**
+1. Борлуулалтын заавар 🧾 — "Нэхэмжлэх хэрхэн үүсгэх вэ" → merchant_sales_guide
+2. Мерчант хайх заавар 🔍 — "Ойролцоох мерчант хэрхэн олох вэ" → merchant_find_guide
+
 **Quick replies:**
-- Борлуулалтын заавар 🧾 → merchant_sales_guide
-- Мерчант хайх заавар 🔍 → merchant_find_guide
 - Холбогдох 📞 → merchant_contact
 - Буцах → merchant
 
@@ -251,19 +258,19 @@ WooW үйлчилгээг өөрийн бизнестээ нэвтрүүлэхэ
 ## УРАМШУУЛАЛ (spin wheel) branch
 
 ### KEY: wheel
-**Card:** title "Урамшууллын хүрд 🎁", subtitle "Утасны дугаараа бичээд кодоо аваарай", [placeholder image]
+**Card (hero):** "Урамшууллын хүрд 🎁" — "Утасны дугаараа бичээд кодоо аваарай"
 
-**Message (sent after the card):**
+**Message (after the card):**
 Урамшууллын эргэлтийн кодоо авахын тулд бүртгэлтэй утасны дугаараа доор бичнэ үү. 📱💙
 
 **Quick replies:**
 - Буцах → root
 
-**Special behavior (logic, not editable text):** Any message that looks like a phone number (6–12 digits), sent from *anywhere* in the flow, is automatically treated as a code lookup — the bot searches `clients` by phone and replies with a card containing the code + a "Хүрдээ эргүүлэх" button linking straight into the spin wheel. If no match is found, it shows a "not found" message with Холбогдох/Буцах options.
+**Special behavior (logic, not editable text):** Any message that looks like a phone number (6–12 digits), sent from *anywhere* in the flow, is automatically treated as a code lookup — the bot searches `clients` by phone and replies with a "Хүрдээ эргүүлэх" button linking straight into the spin wheel. If no match is found, it shows a "not found" message with Холбогдох/Буцах options.
 
 ---
 
 ## Not yet built into any screen
 - Video links for the 5 `[COMING SOON]` placeholders above
 - Мерчант шалгуур (merchant eligibility criteria) — deferred, no content yet
-- Real card images (currently plain navy/gold "WoowPay" placeholders on: client_loan_purchase, client_loan_cash, client_app, merchant_new_benefits, wheel)
+- Real card images (currently plain navy/gold "WoowPay" placeholders on every card in the flow — 14 cards total across menus and hero screens)

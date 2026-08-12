@@ -210,26 +210,33 @@ alter table public.bot_nodes enable row level security;
 revoke all on public.bot_nodes from anon, authenticated;
 
 -- template_type controls how messenger-webhook renders a node:
---   text    — plain message + quick-reply chips (the default; used for
---             every menu screen, e.g. root, client, merchant).
+--   text    — plain message + quick-reply chips. Used for leaf/detail
+--             screens (guide answers, coming-soon placeholders) where
+--             there's nothing to browse, just a message + a couple of
+--             next-step chips.
 --   button  — Facebook's Button Template (used for the phone-number
 --             contact screens; up to 3 buttons).
---   generic — Facebook's Generic Template: one image "hero" card (title
---             + subtitle + optional buttons) sent before the text
---             message. Used for promo/single-message screens (loan
---             products, app download, wheel prompt, merchant benefits).
+--   generic — Facebook's Generic Template: a swipeable card carousel
+--             (image + title + subtitle + up to 3 buttons per card).
+--             Used two ways: (a) as the main MENU screens (root's
+--             children — client, client_guide, merchant, merchant_new,
+--             merchant_existing) where each card's button is
+--             type "postback" pointing at another node key — tapping
+--             "Сонгох" navigates the bot exactly like a quick-reply
+--             chip did before; and (b) as a single-card "hero" shown
+--             before the text message on promo/single-message screens
+--             (loan products, app download, wheel prompt, merchant
+--             benefits).
 --   list    — Facebook's List Template. IMPLEMENTED BUT NOT USABLE:
 --             live testing (2026-08-12) showed Facebook's Graph API
 --             rejects list templates whose element buttons use type
---             "postback" (our internal node-navigation payloads) with a
---             generic "(#-1) Unexpected internal error" — confirmed
---             reproducible with and without image_url. List Template's
---             per-item actions appear to only reliably support type
---             "web_url" (opening an external link), which doesn't fit
---             our in-bot navigation. Do not set a node to 'list' unless
---             this is revisited — the column/code path is left in place
---             in case Meta changes this, but every menu node currently
---             uses 'text' instead.
+--             "postback" with a generic "(#-1) Unexpected internal
+--             error" — confirmed reproducible with and without
+--             image_url. Generic Template's per-card buttons DO support
+--             postback fine (confirmed live, see above) — List Template
+--             specifically does not. Do not set a node to 'list' unless
+--             this is revisited by Meta; the column/code path is left
+--             in place just in case.
 --
 -- Placeholder card images use https://placehold.co/{w}x{h}/10213F/FFD43B.png?text=WoowPay
 -- (brand navy/gold) — swap image_url values for real photography/art
