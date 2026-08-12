@@ -189,6 +189,30 @@ revoke all on public.bot_config from anon, authenticated;
 --   ('page_access_token', '...')
 -- on conflict (key) do update set value = excluded.value, updated_at = now();
 
+-- 8. bot_nodes — the Messenger bot's menu content (root → Харилцагч/
+--    Мерчант/Урамшуулал and every submenu under them). Edited directly
+--    in this table, not in code — messenger-webhook re-reads it on
+--    every request, so copy changes need no redeploy. Same lockdown
+--    as bot_config: RLS on, zero policies, service-role-only access.
+create table if not exists public.bot_nodes (
+  key           text primary key,
+  text          text not null,
+  quick_replies jsonb not null default '[]'::jsonb, -- [{ "title": "...", "target": "node_key" }]
+  buttons       jsonb not null default '[]'::jsonb, -- [{ "type": "web_url"|"phone_number", "title": "...", "url"/"payload": "..." }]
+  updated_at    timestamptz not null default now()
+);
+
+alter table public.bot_nodes enable row level security;
+revoke all on public.bot_nodes from anon, authenticated;
+
+-- See the add_client_soft_delete-era migration history / apply_migration
+-- calls for the actual seeded node content (root, client, client_loan_
+-- purchase, client_loan_cash, client_app, client_guide + 4 leaves,
+-- client_contact, merchant, merchant_new + benefits/guide, merchant_
+-- existing + sales/find guides, merchant_contact, wheel). Query
+-- `select key, text, quick_replies, buttons from public.bot_nodes`
+-- in the SQL editor to see/edit live content.
+
 -- ============================================================
 -- Still recommended, dashboard-only (not SQL):
 --   Authentication → Providers → Email → turn OFF "Allow new
