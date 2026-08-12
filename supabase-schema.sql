@@ -218,15 +218,26 @@ revoke all on public.bot_nodes from anon, authenticated;
 --             contact screens; up to 3 buttons).
 --   generic — Facebook's Generic Template: a swipeable card carousel
 --             (image + title + subtitle + up to 3 buttons per card).
---             Used two ways: (a) as the main MENU screens (root's
---             children — client, client_guide, merchant, merchant_new,
---             merchant_existing) where each card's button is
---             type "postback" pointing at another node key — tapping
---             "Сонгох" navigates the bot exactly like a quick-reply
---             chip did before; and (b) as a single-card "hero" shown
---             before the text message on promo/single-message screens
---             (loan products, app download, wheel prompt, merchant
---             benefits).
+--             Used two ways: (a) as MENU screens, including root itself
+--             — each card's button is type "postback" pointing at
+--             another node key, so tapping "Сонгох" navigates the bot
+--             exactly like a quick-reply chip did before; and (b) as a
+--             single-card "hero" shown before the text message on
+--             promo/single-message screens (loan products, app
+--             download, wheel prompt, merchant benefits).
+--
+-- Navigation conventions baked into the current content (not enforced
+-- by code, just how every node's quick_replies are written):
+--   - "Буцах" is always split into two chips: "Өмнөх цэс рүү буцах"
+--     (the immediate parent node) and "Нүүр хуудас буцах" (root).
+--     Nodes whose only parent IS root (client, merchant, wheel) just
+--     get a single "Нүүр хуудас буцах" since both would be identical.
+--   - "Холбогдох" never links directly to a phone-button screen — it
+--     always goes through a small *_contact_choice node first
+--     ("Утсаар холбогдох" → phone buttons / "Чатаар холбогдох" → a
+--     plain "type your question here" handoff message). See
+--     client_contact_choice / client_chat / merchant_contact_choice /
+--     merchant_chat.
 --   list    — Facebook's List Template. IMPLEMENTED BUT NOT USABLE:
 --             live testing (2026-08-12) showed Facebook's Graph API
 --             rejects list templates whose element buttons use type
