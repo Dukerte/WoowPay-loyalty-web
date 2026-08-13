@@ -47,7 +47,7 @@ export function CodeEntry(
           </div>
           <div class="ce-form ce-step">
             <p class="ce-eyebrow">WOOW PAY · УРАМШУУЛЛЫН ХҮРД</p>
-            <h1 class="ce-title">Азаа туршаарай!</h1>
+            <h1 class="ce-title">Хүрдээ эргүүлээд азтан болоорой!</h1>
             <p class="ce-sub">Эрхийн кодоо оруулна уу.</p>
 
             <div class="ce-input-wrap">
