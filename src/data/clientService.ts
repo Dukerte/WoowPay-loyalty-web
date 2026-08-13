@@ -30,7 +30,15 @@ export async function validateCodeRemote(raw: string): Promise<CodeValidationRes
   if (!hasSupabase()) return local;
 
   try {
-    const client = await selectOne<SupabaseClient>('clients', { code: `eq.${code}`, enabled: 'eq.true' });
+    // Explicit `select=` is required: the anon key only has column-level
+    // grants on these specific fields (not name/phone), and PostgREST's
+    // default `SELECT *` fails outright with "permission denied for
+    // table" the moment it implicitly requests a column anon can't read.
+    const client = await selectOne<SupabaseClient>('clients', {
+      code: `eq.${code}`,
+      enabled: 'eq.true',
+      select: 'id,code,spins,spins_used,enabled,user_type',
+    });
 
     if (!client) return local; // not in DB → fall back to static
 
