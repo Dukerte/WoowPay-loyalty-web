@@ -28,13 +28,17 @@ export function SpinScreen(
 
   let spinsUsed = 0;
   let spinsLeft = totalSpins;
+  // Mutable copy: "Хүрд эргүүлэх +N эрх" prizes grant bonus spins mid-session,
+  // so the dot count / denominator needs to grow along with spinsLeft
+  // instead of staying pinned to the code's original allotment.
+  let spinsTotalLive = totalSpins;
 
   // ── Header card ──────────────────────────────────────────
   const headerCard = document.createElement('div');
   headerCard.className = 'ss-header-card';
 
   function buildHeaderHTML(): string {
-    const dots = Array.from({ length: totalSpins }, (_, i) => {
+    const dots = Array.from({ length: spinsTotalLive }, (_, i) => {
       let cls = 'ss-dot ';
       cls += i < spinsUsed ? 'used' : i === spinsUsed ? 'active' : 'pending';
       return `<div class="${cls}"></div>`;
@@ -46,7 +50,7 @@ export function SpinScreen(
         <div class="ss-spins-remaining">
           <span class="sr-label">Үлдсэн эргэлт</span>
           <div class="sr-dots">${dots}</div>
-          <span class="sr-count">${spinsLeft}/${totalSpins}</span>
+          <span class="sr-count">${spinsLeft}/${spinsTotalLive}</span>
         </div>
       </div>
       <div class="ss-header-divider"></div>
@@ -95,6 +99,18 @@ export function SpinScreen(
       spinsLeft--;
       wonThisSession.push(prize);
       recordSpin(code, prize.label); // fire-and-forget Supabase update + prize log
+
+      // "Хүрд эргүүлэх +N эрх" prizes grant bonus spins — mirror what
+      // record_spin() now credits server-side so the on-screen count
+      // (and dot total) grows immediately instead of lagging until the
+      // code is re-entered.
+      const bonusMatch = /эргүүлэх\s*\+(\d+)\s*эрх/i.exec(prize.label);
+      if (bonusMatch) {
+        const bonus = parseInt(bonusMatch[1], 10);
+        spinsLeft += bonus;
+        spinsTotalLive += bonus;
+      }
+
       renderHeader();
       updateLabel();
       if (spinsLeft <= 0) spinBtn.disabled = true;
