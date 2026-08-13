@@ -40,7 +40,11 @@ export async function validateCodeRemote(raw: string): Promise<CodeValidationRes
       select: 'id,code,spins,spins_used,enabled,user_type',
     });
 
-    if (!client) return local; // not in DB → fall back to static
+    // Supabase is reachable and the query ran fine — a miss here means the
+    // code genuinely doesn't exist (or is disabled), not that we're offline.
+    // Falling back to `local` in this case is exactly what let any
+    // correctly-formatted-but-made-up code (e.g. WC-ZL4212) through.
+    if (!client) return { valid: false, error: 'Код олдсонгүй эсвэл идэвхгүй байна' };
 
     const spinsLeft = client.spins - client.spins_used;
     if (spinsLeft <= 0) {
