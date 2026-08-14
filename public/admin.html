@@ -333,6 +333,7 @@
     <div class="topbar-tabs">
       <button class="topbar-tab active" id="tab-clients" onclick="switchView('clients')">👥 Харилцагчид</button>
       <button class="topbar-tab" id="tab-prizes" onclick="switchView('prizes')">🎡 Шагнал ба магадлал</button>
+      <button class="topbar-tab" id="tab-raffle" onclick="switchView('raffle')">🎟️ Супер сугалаа</button>
     </div>
     <span class="topbar-user" id="topbar-user"></span>
     <button class="btn-logout" onclick="logout()">Гарах</button>
@@ -464,6 +465,43 @@
         </thead>
         <tbody id="prize-table-body">
           <tr class="empty-row"><td colspan="6">Ачааллаж байна...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ SUPER RAFFLE VIEW ════════════════════════════════════════ -->
+  <div class="view" id="view-raffle">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Нийт сугалааны эрх</div>
+        <div class="stat-val" id="r-total-entries">–</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Эрхтэй харилцагч</div>
+        <div class="stat-val" id="r-total-clients">–</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <input type="text" class="toolbar-search" id="raffle-search-input" placeholder="🔍 Нэр, утас, код хайх..." oninput="renderRaffleTable()" />
+      <span style="font-size:.8rem;color:var(--muted)">Хожсон "Супер сугалааны эрх" тоог харилцагч тус бүрээр нэгтгэв. Хожлын дүрэм, огноо тодорхойгүй байгаа тул эрхийг энд зөвхөн бүртгэж байна.</span>
+      <button class="btn-sm btn-export" style="margin-left:auto" onclick="exportRaffleFile()">📤 CSV/XLSX Татах</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Нэр</th>
+            <th>Утас</th>
+            <th>Код</th>
+            <th>Нийт эрх</th>
+            <th>Хожлын түүх</th>
+            <th>Сүүлд хожсон</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="raffle-table-body">
+          <tr class="empty-row"><td colspan="7">Ачааллаж байна...</td></tr>
         </tbody>
       </table>
     </div>
@@ -691,12 +729,16 @@ function showApp(email) {
 }
 
 let prizesLoaded = false;
+let raffleLoaded = false;
 function switchView(view) {
   document.getElementById('view-clients').classList.toggle('active', view === 'clients');
   document.getElementById('view-prizes').classList.toggle('active', view === 'prizes');
+  document.getElementById('view-raffle').classList.toggle('active', view === 'raffle');
   document.getElementById('tab-clients').classList.toggle('active', view === 'clients');
   document.getElementById('tab-prizes').classList.toggle('active', view === 'prizes');
+  document.getElementById('tab-raffle').classList.toggle('active', view === 'raffle');
   if (view === 'prizes' && !prizesLoaded) { prizesLoaded = true; loadPrizes(); }
+  if (view === 'raffle' && !raffleLoaded) { raffleLoaded = true; loadRaffleEntries(); }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1223,6 +1265,112 @@ async function toggleFulfilled(id, current) {
     openRewards(currentRewardsClientId, c ? c.name : '');
   }
   loadClients(); // refresh the "Сүүлд хожсон" column + stats too
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SUPER RAFFLE (Супер сугалаа) — entries tallied from spin_results.
+//  No raffle rules/prize/draw date are finalized yet — this just keeps
+//  an auditable running count of "Супер сугалааны эрх" wins per client
+//  so nothing is lost before the memo is ready. Once rules exist, this
+//  view is the source of truth for who's entered and how many times.
+// ══════════════════════════════════════════════════════════════
+let raffleEntries = []; // [{ client, total, wins: [{label, wonAt, n}], lastWonAt }]
+
+async function loadRaffleEntries() {
+  const tbody = document.getElementById('raffle-table-body');
+  tbody.innerHTML = `<tr class="empty-row"><td colspan="7">Ачааллаж байна...</td></tr>`;
+
+  if (!allClients.length) {
+    const { data } = await sbClient.from('clients').select('*');
+    allClients = data || [];
+  }
+
+  const { data, error } = await sbClient
+    .from('spin_results')
+    .select('client_id, prize_label, won_at')
+    .ilike('prize_label', '%сугалааны эрх%')
+    .order('won_at', { ascending: false });
+
+  if (error) { tbody.innerHTML = `<tr class="empty-row"><td colspan="7">Алдаа гарлаа</td></tr>`; return; }
+
+  const byClient = {};
+  (data || []).forEach(r => {
+    if (!r.client_id) return;
+    const m = /\+(\d+)/.exec(r.prize_label || '');
+    const n = m ? parseInt(m[1], 10) : 1;
+    if (!byClient[r.client_id]) byClient[r.client_id] = { total: 0, wins: [], lastWonAt: r.won_at };
+    byClient[r.client_id].total += n;
+    byClient[r.client_id].wins.push({ label: r.prize_label, wonAt: r.won_at, n });
+  });
+
+  raffleEntries = Object.keys(byClient).map(cid => {
+    const client = allClients.find(c => c.id === cid);
+    return client ? { client, ...byClient[cid] } : null;
+  }).filter(Boolean).sort((a, b) => b.total - a.total);
+
+  document.getElementById('r-total-entries').textContent = raffleEntries.reduce((s, r) => s + r.total, 0);
+  document.getElementById('r-total-clients').textContent = raffleEntries.length;
+
+  renderRaffleTable();
+}
+
+function renderRaffleTable() {
+  const tbody = document.getElementById('raffle-table-body');
+  if (!raffleEntries) return;
+  const q = (document.getElementById('raffle-search-input').value || '').toLowerCase();
+  const rows = raffleEntries.filter(r => {
+    const c = r.client;
+    return !q || (c.name||'').toLowerCase().includes(q) || (c.phone||'').includes(q) || (c.code||'').toLowerCase().includes(q);
+  });
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="7">Илэрц олдсонгүй</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const c = r.client;
+    // e.g. "+2 × 1, +1 × 3"
+    const counts = {};
+    r.wins.forEach(w => { counts[w.n] = (counts[w.n] || 0) + 1; });
+    const history = Object.keys(counts).sort((a, b) => b - a)
+      .map(n => `+${n} × ${counts[n]}`).join(', ');
+    const date = r.lastWonAt ? new Date(r.lastWonAt).toLocaleDateString('mn-MN') : '—';
+    return `
+      <tr>
+        <td>${esc(c.name)}</td>
+        <td>${esc(c.phone)}</td>
+        <td><code style="font-size:.8rem;color:var(--cyan)">${esc(c.code)}</code></td>
+        <td><span class="badge badge-on">${r.total}</span></td>
+        <td style="font-size:.8rem;color:var(--muted)">${esc(history)}</td>
+        <td style="font-size:.78rem;color:var(--muted)">${date}</td>
+        <td><button class="btn-icon" title="Дэлгэрэнгүй" onclick="openRewards('${c.id}', '${esc(c.name)}')">👁️</button></td>
+      </tr>`;
+  }).join('');
+}
+
+function exportRaffleFile() {
+  const headers = ['Нэр','Утас','Код','Нийт эрх','Сүүлд хожсон'];
+  const rows = [headers, ...raffleEntries.map(r => [
+    r.client.name, r.client.phone, r.client.code, r.total,
+    r.lastWonAt ? new Date(r.lastWonAt).toLocaleString('mn-MN') : ''
+  ])];
+  const stamp = new Date().toISOString().slice(0,10);
+
+  if (window.XLSX) {
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = headers.map(() => ({ wch: 18 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Супер сугалаа');
+    XLSX.writeFile(wb, `super-sugalaa-${stamp}.xlsx`);
+  } else {
+    const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `super-sugalaa-${stamp}.csv`;
+    a.click();
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
