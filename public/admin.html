@@ -752,24 +752,45 @@ let prizesByClient = {}; // client_id -> [{ id, label, wonAt, fulfilled }, ...] 
 let showingTrash  = false;
 let selectedClientIds = new Set();
 
+// PostgREST caps a single request at 1000 rows (db.max_rows). Once any
+// table passes 1000 rows, a plain .select() silently drops everything
+// past the cutoff — with a descending order this means the OLDEST rows
+// quietly disappear (exactly what happened to the first 100 clients
+// once the total crossed 1000). Page through in chunks of 1000 and
+// concatenate so every query below always returns the full table.
+async function fetchAllRows(table, selectStr, build) {
+  const PAGE = 1000;
+  let rows = [];
+  let from = 0;
+  while (true) {
+    let q = sbClient.from(table).select(selectStr);
+    if (build) q = build(q);
+    const { data, error } = await q.range(from, from + PAGE - 1);
+    if (error) return { data: null, error };
+    rows = rows.concat(data || []);
+    if (!data || data.length < PAGE) break;
+    from += PAGE;
+  }
+  return { data: rows, error: null };
+}
+
 async function loadClients() {
   if (!sbClient) return;
-  const { data, error } = await sbClient
-    .from('clients')
-    .select('*')
-    .order('created_at', { ascending: false });
 
+  const { data: allRows, error } = await fetchAllRows(
+    'clients', '*', q => q.order('created_at', { ascending: false })
+  );
   if (error) { showToast('Өгөгдөл татахад алдаа гарлаа', 'error'); return; }
-  allClients = data || [];
+  allClients = allRows;
 
   // All prizes per client (not just latest) — a client who spun N
   // times shows as N rows in the table, one per spin. Keeps the row
   // id too so a single unambiguous prize can be toggled directly from
   // the clients table without opening the rewards modal.
-  const { data: results } = await sbClient
-    .from('spin_results')
-    .select('id, client_id, prize_label, won_at, fulfilled')
-    .order('won_at', { ascending: false });
+  const { data: results } = await fetchAllRows(
+    'spin_results', 'id, client_id, prize_label, won_at, fulfilled',
+    q => q.order('won_at', { ascending: false })
+  );
   prizesByClient = {};
   (results || []).forEach(r => {
     if (!r.client_id) return;
@@ -1281,15 +1302,14 @@ async function loadRaffleEntries() {
   tbody.innerHTML = `<tr class="empty-row"><td colspan="7">Ачааллаж байна...</td></tr>`;
 
   if (!allClients.length) {
-    const { data } = await sbClient.from('clients').select('*');
+    const { data } = await fetchAllRows('clients', '*');
     allClients = data || [];
   }
 
-  const { data, error } = await sbClient
-    .from('spin_results')
-    .select('client_id, prize_label, won_at')
-    .ilike('prize_label', '%сугалааны эрх%')
-    .order('won_at', { ascending: false });
+  const { data, error } = await fetchAllRows(
+    'spin_results', 'client_id, prize_label, won_at',
+    q => q.ilike('prize_label', '%сугалааны эрх%').order('won_at', { ascending: false })
+  );
 
   if (error) { tbody.innerHTML = `<tr class="empty-row"><td colspan="7">Алдаа гарлаа</td></tr>`; return; }
 
@@ -1632,7 +1652,7 @@ async function importRows(rows) {
 
   // Existing codes across the whole system, so generated codes can
   // never collide with a real, already-issued code.
-  const { data: existingRows, error: fetchErr } = await sbClient.from('clients').select('code');
+  const { data: existingRows, error: fetchErr } = await fetchAllRows('clients', 'code');
   if (fetchErr) { showToast('Одоо байгаа кодуудыг уншиж чадсангүй: ' + fetchErr.message, 'error'); return; }
   const usedCodes = new Set((existingRows || []).map(r => r.code));
 
