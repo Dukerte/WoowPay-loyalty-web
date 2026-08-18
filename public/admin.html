@@ -758,6 +758,19 @@ let selectedClientIds = new Set();
 // quietly disappear (exactly what happened to the first 100 clients
 // once the total crossed 1000). Page through in chunks of 1000 and
 // concatenate so every query below always returns the full table.
+//
+// Ordering by created_at alone is NOT enough: bulk imports insert
+// hundreds/thousands of rows sharing the exact same timestamp
+// (down to the microsecond), and Postgres does not guarantee a
+// stable order among tied rows across separate paginated queries.
+// Two independent .range() requests can each pick a different order
+// for the tied rows, so the same row can appear in two pages while
+// another is skipped by both — the total count still adds up (a
+// duplicate silently fills the missing row's slot), which is exactly
+// why this was invisible until someone searched for a specific
+// person and got "Илэрц олдсонгүй" despite the row existing in the
+// database. Always add `id` (unique, indexed) as a tiebreaker so
+// pagination is fully deterministic.
 async function fetchAllRows(table, selectStr, build) {
   const PAGE = 1000;
   let rows = [];
@@ -765,6 +778,7 @@ async function fetchAllRows(table, selectStr, build) {
   while (true) {
     let q = sbClient.from(table).select(selectStr);
     if (build) q = build(q);
+    q = q.order('id', { ascending: true });
     const { data, error } = await q.range(from, from + PAGE - 1);
     if (error) return { data: null, error };
     rows = rows.concat(data || []);
