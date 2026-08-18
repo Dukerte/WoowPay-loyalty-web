@@ -1615,6 +1615,14 @@ function randomCode(prefix, usedCodes) {
   return code;
 }
 
+// Digits only, last 8 — matches how phone numbers are actually stored
+// (e.g. "80214618"), regardless of whether a file has a "976" country
+// code, spaces, or dashes in front.
+function normalizePhone(raw) {
+  const digits = String(raw || '').replace(/\D/g, '');
+  return digits.slice(-8);
+}
+
 /** Shared row -> upsert logic for both CSV and XLSX import. Reads
     columns by matching the header row's Mongolian labels rather than
     a fixed position, so files don't have to carry every column in
@@ -1623,7 +1631,16 @@ function randomCode(prefix, usedCodes) {
     fine, and a code is generated for every row that doesn't supply
     one. Generated codes are checked against both the rest of the
     batch and every code already in the database, so they're always
-    unique. */
+    unique.
+
+    Rows are matched to EXISTING clients by phone number, not just
+    code — a fresh random code can never collide, so relying on code
+    alone let the same real person get a second, separate account (and
+    a second free spin) every time their phone showed up in a later
+    import batch. When a row's phone already belongs to a client, its
+    spins are added to that client's existing total instead of
+    inserting a duplicate. Rows that share a new phone within the same
+    file are merged the same way before insert. */
 async function importRows(rows) {
   if (rows.length < 2) { showToast('Файл хоосон байна', 'error'); return; }
 
@@ -1650,17 +1667,50 @@ async function importRows(rows) {
     return;
   }
 
-  // Existing codes across the whole system, so generated codes can
-  // never collide with a real, already-issued code.
-  const { data: existingRows, error: fetchErr } = await fetchAllRows('clients', 'code');
+  // Existing clients across the whole system — codes so generated
+  // codes can never collide, phone so rows are matched to an existing
+  // person instead of duplicated. Ordered oldest-first so, when a
+  // phone somehow already has more than one live account (e.g. from
+  // before this fix), the earliest — most likely already shared with
+  // the client — is the one topped up.
+  const { data: existingRows, error: fetchErr } = await fetchAllRows(
+    'clients', 'id, code, phone, spins, deleted_at',
+    q => q.order('created_at', { ascending: true })
+  );
   if (fetchErr) { showToast('Одоо байгаа кодуудыг уншиж чадсангүй: ' + fetchErr.message, 'error'); return; }
   const usedCodes = new Set((existingRows || []).map(r => r.code));
+  const existingByPhone = new Map();
+  (existingRows || []).forEach(r => {
+    if (r.deleted_at) return;
+    const p = normalizePhone(r.phone);
+    if (!p || existingByPhone.has(p)) return;
+    existingByPhone.set(p, r);
+  });
 
   const inserts = [];
+  const topUps = new Map();     // client id -> spins to add to an existing client
+  const newByPhone = new Map(); // phone -> insert row, for dupes new *within* this file
   let generatedCount = 0;
+  let mergedCount = 0;
   for (let i = 1; i < rows.length; i++) {
     const cols = rows[i];
     if (!cols || !cols[col.name]) continue;
+
+    const rawPhone = String(cols[col.phone] || '');
+    const phone    = normalizePhone(rawPhone);
+    const spins    = parseInt(cols[col.spins]) || 1;
+
+    const existing = phone && existingByPhone.get(phone);
+    if (existing) {
+      topUps.set(existing.id, (topUps.get(existing.id) || 0) + spins);
+      mergedCount++;
+      continue;
+    }
+    if (phone && newByPhone.has(phone)) {
+      newByPhone.get(phone).spins += spins;
+      mergedCount++;
+      continue;
+    }
 
     // Accepts both the raw English value this same file exports
     // ('merchant'/'client') and the Mongolian labels a human is more
@@ -1675,23 +1725,38 @@ async function importRows(rows) {
       usedCodes.add(code);
     }
 
-    inserts.push({
+    const row = {
       name:       String(cols[col.name] || ''),
-      phone:      String(cols[col.phone] || ''),
+      phone:      rawPhone,
       code,
       user_type:  userType,
-      spins:      parseInt(cols[col.spins]) || 1,
+      spins,
       spins_used: col.used >= 0 ? (parseInt(cols[col.used]) || 0) : 0,
       enabled:    col.enabled >= 0 ? cols[col.enabled] !== 'үгүй' : true,
       notes:      col.notes >= 0 ? String(cols[col.notes] || '') : '',
-    });
+    };
+    inserts.push(row);
+    if (phone) newByPhone.set(phone, row);
   }
-  if (!inserts.length) { showToast('Хүчинтэй мөр олдсонгүй', 'error'); return; }
+  if (!inserts.length && !topUps.size) { showToast('Хүчинтэй мөр олдсонгүй', 'error'); return; }
 
-  const { error } = await sbClient.from('clients').upsert(inserts, { onConflict: 'code' });
-  if (error) { showToast('Импортод алдаа: ' + error.message, 'error'); return; }
-  const genNote = generatedCount ? ` (${generatedCount} код автоматаар үүсгэсэн)` : '';
-  showToast(`${inserts.length} харилцагч импортлогдлоо ✓${genNote}`, 'success');
+  if (inserts.length) {
+    const { error } = await sbClient.from('clients').upsert(inserts, { onConflict: 'code' });
+    if (error) { showToast('Импортод алдаа: ' + error.message, 'error'); return; }
+  }
+
+  for (const [id, addSpins] of topUps) {
+    const existing = (existingRows || []).find(r => r.id === id);
+    const { error } = await sbClient
+      .from('clients')
+      .update({ spins: (existing ? existing.spins : 0) + addSpins })
+      .eq('id', id);
+    if (error) { showToast('Эрх нэмэхэд алдаа: ' + error.message, 'error'); return; }
+  }
+
+  const genNote    = generatedCount ? ` (${generatedCount} код автоматаар үүсгэсэн)` : '';
+  const mergedNote = mergedCount ? `, ${mergedCount} давхардсан дугаарт эрх нэмэгдлээ (кодгүй)` : '';
+  showToast(`${inserts.length} шинэ харилцагч импортлогдлоо ✓${genNote}${mergedNote}`, 'success');
   loadClients();
 }
 
