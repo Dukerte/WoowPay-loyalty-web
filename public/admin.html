@@ -830,9 +830,15 @@ function filterClients() {
       matchS = String(c.enabled) === stat;
     } else if (stat === 'fulfilled' || stat === 'unfulfilled') {
       const prizes = prizesByClient[c.id] || [];
+      // A client who has never spun has zero prize records — that's
+      // not "fulfilled" in any sense, so it belongs under "Шагнал
+      // олгоогүй", not silently excluded from both filters (which is
+      // what `.some()` on an empty array did before: false either way,
+      // making never-spun clients disappear from the list entirely
+      // whenever this filter was active).
       matchS = stat === 'fulfilled'
         ? prizes.some(p => p.fulfilled)
-        : prizes.some(p => !p.fulfilled);
+        : (prizes.length === 0 || prizes.some(p => !p.fulfilled));
     }
     return matchQ && matchT && matchS;
   });
