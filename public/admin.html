@@ -432,9 +432,9 @@
       <span style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);margin-left:16px">
         Нэг хуудсанд:
         <select class="filter-sel" id="page-size-sel" onchange="changePageSize(this.value)" style="padding:4px 8px">
-          <option value="20">20</option>
           <option value="50">50</option>
           <option value="100">100</option>
+          <option value="500">500</option>
         </select>
         мөр
       </span>
@@ -747,7 +747,7 @@ function switchView(view) {
 let allClients   = [];
 let filteredList = []; // list of { client, prize } rows — one per spin, or one with prize:null if never spun
 let currentPage  = 1;
-let PAGE_SIZE    = 20;
+let PAGE_SIZE    = 50;
 let prizesByClient = {}; // client_id -> [{ id, label, wonAt, fulfilled }, ...] newest first
 let showingTrash  = false;
 let selectedClientIds = new Set();
