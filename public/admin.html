@@ -812,17 +812,21 @@ async function loadClients() {
       .push({ id: r.id, label: r.prize_label, wonAt: r.won_at, fulfilled: r.fulfilled });
   });
 
-  updateStats();
   filterClients();
 }
 
-function updateStats() {
-  // Stats reflect live (non-trashed) clients only.
-  const live      = allClients.filter(c => !c.deleted_at);
-  const active    = live.filter(c => c.enabled);
-  const totalSpins = live.reduce((s, c) => s + (c.spins || 0), 0);
-  const usedSpins  = live.reduce((s, c) => s + (c.spins_used || 0), 0);
-  document.getElementById('s-total').textContent  = live.length;
+// Stats reflect whatever set of clients is passed in — filterClients()
+// calls this with the currently filtered/searched clients (before the
+// per-spin row expansion, so each client is only counted once) so the
+// four cards track the visible list instead of always showing the
+// site-wide total regardless of search or filter. That list is already
+// scoped to the current trash/live view by filterClients, so no extra
+// deleted_at filtering is needed here.
+function updateStats(clientList) {
+  const active     = clientList.filter(c => c.enabled);
+  const totalSpins = clientList.reduce((s, c) => s + (c.spins || 0), 0);
+  const usedSpins  = clientList.reduce((s, c) => s + (c.spins_used || 0), 0);
+  document.getElementById('s-total').textContent  = clientList.length;
   document.getElementById('s-active').textContent = active.length;
   document.getElementById('s-spins').textContent  = totalSpins;
   document.getElementById('s-used').textContent   = usedSpins;
@@ -856,6 +860,8 @@ function filterClients() {
     }
     return matchQ && matchT && matchS;
   });
+
+  updateStats(matchingClients);
 
   // Expand each client into one row per spin (or one empty-prize row
   // if they've never spun), so multi-spin clients show as duplicated
