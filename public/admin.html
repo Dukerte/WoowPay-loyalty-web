@@ -376,6 +376,13 @@
         <option value="fulfilled">Шагнал олгосон</option>
         <option value="unfulfilled">Шагнал олгоогүй</option>
       </select>
+      <span style="display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted)">
+        Эргүүлсэн:
+        <input type="datetime-local" class="filter-sel" id="filter-date-from" onchange="filterClients()" style="padding:4px 8px" title="Эхлэх огноо/цаг" />
+        —
+        <input type="datetime-local" class="filter-sel" id="filter-date-to" onchange="filterClients()" style="padding:4px 8px" title="Дуусах огноо/цаг" />
+        <button class="btn-sm" onclick="clearDateFilter()" title="Огнооны шүүлтүүр цэвэрлэх" style="padding:4px 8px">✕</button>
+      </span>
       <button class="btn-sm btn-import" onclick="document.getElementById('csv-file').click()" title="Заавал: Нэр, Утас багана. Мөн байвал ашиглана: Код, Төрөл (Мерчант/Харилцагч), Эргэлт (эсвэл Эрхийн тоо), Идэвхтэй, Тэмдэглэл. Код баганагүй эсвэл хоосон бол систем автоматаар давхцахгүй код үүсгэнэ.">📥 CSV/XLSX Оруулах</button>
       <input type="file" id="csv-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importFile(event)" />
       <button class="btn-sm btn-export" onclick="exportFile()">📤 CSV/XLSX Татах</button>
@@ -832,10 +839,26 @@ function updateStats(clientList) {
   document.getElementById('s-used').textContent   = usedSpins;
 }
 
+function clearDateFilter() {
+  document.getElementById('filter-date-from').value = '';
+  document.getElementById('filter-date-to').value = '';
+  filterClients();
+}
+
 function filterClients() {
   const q    = (document.getElementById('search-input').value || '').toLowerCase();
   const type = document.getElementById('filter-type').value;
   const stat = document.getElementById('filter-status').value;
+
+  // datetime-local gives a value in the browser's local time with no
+  // timezone suffix — `new Date(...)` interprets that as local time
+  // too, which matches what won_at (stored UTC, rendered locally
+  // everywhere else in this page) should be compared against.
+  const dateFromVal = document.getElementById('filter-date-from').value;
+  const dateToVal   = document.getElementById('filter-date-to').value;
+  const dateFrom = dateFromVal ? new Date(dateFromVal) : null;
+  const dateTo   = dateToVal   ? new Date(dateToVal)   : null;
+  const hasDateFilter = !!(dateFrom || dateTo);
 
   const matchingClients = allClients.filter(c => {
     if (showingTrash ? !c.deleted_at : !!c.deleted_at) return false;
@@ -861,20 +884,41 @@ function filterClients() {
     return matchQ && matchT && matchS;
   });
 
-  updateStats(matchingClients);
-
   // Expand each client into one row per spin (or one empty-prize row
   // if they've never spun), so multi-spin clients show as duplicated
-  // rows with their respective prize on each.
+  // rows with their respective prize on each. When a date range is
+  // set, this is exactly where it's applied: per SPIN, not per client
+  // — a client who spun both before and after a cutoff (e.g. prizes
+  // handed out at 9am, then more spins came in) should only show the
+  // spins that actually fall in range, not be included or excluded
+  // wholesale based on their most recent spin.
   filteredList = [];
   matchingClients.forEach(c => {
     const prizes = prizesByClient[c.id];
     if (prizes && prizes.length) {
-      prizes.forEach(p => filteredList.push({ client: c, prize: p }));
-    } else {
+      prizes.forEach(p => {
+        if (hasDateFilter) {
+          const t = new Date(p.wonAt);
+          if (dateFrom && t < dateFrom) return;
+          if (dateTo && t > dateTo) return;
+        }
+        filteredList.push({ client: c, prize: p });
+      });
+    } else if (!hasDateFilter) {
+      // A client who's never spun has no timestamp to compare, so
+      // they can't match a date range — only show them in the
+      // unfiltered view.
       filteredList.push({ client: c, prize: null });
     }
   });
+
+  // Stats track exactly what's in the table: with no date filter,
+  // that's one entry per matching client; with a date filter, it's
+  // the distinct clients who actually have a spin in range.
+  const statClients = hasDateFilter
+    ? matchingClients.filter(c => filteredList.some(r => r.client.id === c.id))
+    : matchingClients;
+  updateStats(statClients);
 
   document.getElementById('trash-count').textContent = allClients.filter(c => c.deleted_at).length;
 
