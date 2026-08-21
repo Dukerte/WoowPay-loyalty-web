@@ -1,5 +1,5 @@
 import { formatCodeInput, validateCode } from '../data/codeValidator';
-import { validateCodeRemote, verifyPhoneRemote } from '../data/clientService';
+import { validateCodeRemote, verifyPhoneRemote, verifyLinkTokenRemote } from '../data/clientService';
 import { logEvent } from '../data/analytics';
 import type { UserType } from '../types';
 
@@ -9,8 +9,36 @@ export function CodeEntry(
   const el = document.createElement('div');
   el.className = 'code-entry';
 
+  // A code delivered via the Messenger bot arrives as
+  // loyalty.woowpay.mn/?code=WC-XXXXXX&t=<signed token>. The bot
+  // already confirmed phone ownership when it built that link, so a
+  // valid token lets us skip both the code screen AND the manual
+  // phone-confirmation screen and drop the client straight into the
+  // wheel. Any link missing a token, with an expired/tampered one,
+  // or a bare code typed in by hand falls through to the normal
+  // two-step flow below — verifyPhoneRemote still guards that path.
+  const urlParams = new URLSearchParams(window.location.search);
+  const urlCode  = urlParams.get('code');
+  const urlToken = urlParams.get('t');
+
+  if (urlCode && urlToken) {
+    window.history.replaceState({}, '', window.location.pathname);
+    el.innerHTML = '<div class="ce-loading">Ачааллаж байна...</div>';
+    verifyLinkTokenRemote(urlCode, urlToken).then((result) => {
+      if (result.valid && result.userType && result.spins != null && result.phone) {
+        logEvent('link_token_verified', urlCode.trim().toUpperCase(), result.userType);
+        onValid(result.userType, result.spins, urlCode.trim().toUpperCase(), result.phone);
+      } else {
+        // Invalid/expired token → fall back to the normal flow, still
+        // prefilling the code so the client doesn't retype it.
+        renderStep1(urlCode);
+      }
+    });
+    return el;
+  }
+
   // ── Step 1: Code ─────────────────────────────────────────
-  function renderStep1() {
+  function renderStep1(prefillCode?: string) {
     el.innerHTML = `
       <img src="/logo-white.png" class="ce-logo" alt="WoowPay" />
       <div class="ce-card-wrap">
@@ -160,7 +188,10 @@ export function CodeEntry(
     // so the person lands straight in the flow instead of re-typing
     // what the bot just gave them. Strip the param from the URL right
     // away so refreshing or sharing the link doesn't replay it.
-    const urlCode = new URLSearchParams(window.location.search).get('code');
+    // `prefillCode` takes priority when set — that's the fallback path
+    // from an invalid/expired link token above, where the URL params
+    // were already stripped before this function ran.
+    const urlCode = prefillCode || new URLSearchParams(window.location.search).get('code');
     if (urlCode) {
       window.history.replaceState({}, '', window.location.pathname);
       input.value = formatCodeInput(urlCode);
@@ -216,7 +247,7 @@ export function CodeEntry(
       clearErr();
     });
     phoneInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') phoneBtn.click(); });
-    el.querySelector<HTMLButtonElement>('#back-btn')!.addEventListener('click', renderStep1);
+    el.querySelector<HTMLButtonElement>('#back-btn')!.addEventListener('click', () => renderStep1());
 
     phoneBtn.addEventListener('click', async () => {
       clearErr();

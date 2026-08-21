@@ -1,7 +1,7 @@
 import { hasSupabase, selectOne, rpc, rpcCall } from '../lib/supabase';
 import { validateCode }                from './codeValidator';
 import { verifyPhone }                 from './records';
-import type { CodeValidationResult }   from '../types';
+import type { CodeValidationResult, UserType } from '../types';
 
 // name and phone are intentionally absent — the anon key can no longer
 // select those columns (see verify_phone_match RPC below for phone
@@ -81,6 +81,49 @@ export async function verifyPhoneRemote(code: string, phone: string): Promise<bo
     return result;
   } catch {
     return verifyPhone(code, phone); // network error → static fallback
+  }
+}
+
+interface LinkTokenRow {
+  valid:     boolean;
+  user_type: 'merchant' | 'client' | null;
+  spins:     number | null;
+  phone:     string | null;
+}
+
+export interface LinkTokenResult {
+  valid:    boolean;
+  userType?: UserType;
+  spins?:    number;
+  phone?:    string;
+}
+
+/**
+ * Verify a signed deep-link token (see verify_link_token in
+ * supabase-schema.sql). When valid, the Messenger "Хүрдээ эргүүлэх"
+ * button already proved phone ownership at send-time — this lets a
+ * client skip the manual phone-confirmation screen entirely. Any
+ * missing/expired/tampered token, or any Supabase/network hiccup,
+ * safely returns { valid: false } so the caller falls back to the
+ * normal manual-phone flow.
+ */
+export async function verifyLinkTokenRemote(code: string, token: string): Promise<LinkTokenResult> {
+  if (!hasSupabase()) return { valid: false };
+
+  try {
+    const rows = await rpcCall<LinkTokenRow[]>('verify_link_token', {
+      p_code:  code.toUpperCase(),
+      p_token: token,
+    });
+    const row = rows?.[0];
+    if (!row || !row.valid || !row.user_type || row.spins == null || !row.phone) {
+      return { valid: false };
+    }
+    if (row.spins <= 0) return { valid: false };
+
+    return { valid: true, userType: row.user_type, spins: row.spins, phone: row.phone };
+  } catch {
+    return { valid: false };
   }
 }
 

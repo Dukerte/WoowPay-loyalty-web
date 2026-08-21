@@ -4,9 +4,11 @@
 --  (idempotent — safe to re-run on a fresh or existing project)
 --
 --  Status: this file matches what is LIVE on project
---  jamlxsllyqscxydkkwhe as of 2026-08-06. Both migrations below
+--  jamlxsllyqscxydkkwhe as of 2026-08-12. Both migrations below
 --  (security fix + prize logging) have already been applied
---  directly via the Supabase MCP connector.
+--  directly via the Supabase MCP connector. bot_nodes content is
+--  edited live via SQL, not migrations — see section 8 below for
+--  the current structure and messenger-webhook is on v9.
 -- ============================================================
 
 -- 1. Clients table
@@ -228,16 +230,33 @@ revoke all on public.bot_nodes from anon, authenticated;
 --
 -- Navigation conventions baked into the current content (not enforced
 -- by code, just how every node's quick_replies are written):
---   - "Буцах" is always split into two chips: "Өмнөх цэс рүү буцах"
---     (the immediate parent node) and "Нүүр хуудас буцах" (root).
---     Nodes whose only parent IS root (client, merchant, wheel) just
---     get a single "Нүүр хуудас буцах" since both would be identical.
---   - "Холбогдох" never links directly to a phone-button screen — it
---     always goes through a small *_contact_choice node first
---     ("Утсаар холбогдох" → phone buttons / "Чатаар холбогдох" → a
---     plain "type your question here" handoff message). See
---     client_contact_choice / client_chat / merchant_contact_choice /
---     merchant_chat.
+--   - "Буцах" is split into two chips: "← Өмнөх цэс" (immediate parent)
+--     and "🏠 Нүүр цэс" (root). Nodes whose only parent IS root
+--     (client, merchant, loyalty, wheel) just get "🏠 Нүүр цэс" since
+--     both would be identical. (Shortened from the original "Өмнөх цэс
+--     рүү буцах" / "Нүүр хуудас буцах" labels on 2026-08-12 — kept
+--     under Facebook's 20-char quick-reply title limit and reads
+--     cleaner.)
+--   - Every node also carries a persistent "Ажилтантай холбогдох" chip
+--     (added 2026-08-12) so a human handoff is reachable from any
+--     screen in the bot, not just dead-end/leaf nodes.
+--   - "Ажилтантай холбогдох" never links directly to a phone-button
+--     screen — it always goes through contact_choice first
+--     ("Утсаар холбогдох 📞" → contact, the phone-button screen /
+--     "Чатаар холбогдох 💬" → chat, a plain "type your question here"
+--     handoff message). contact_choice/contact/chat are UNIVERSAL —
+--     shared by every branch. The original duplicated per-branch
+--     versions (client_contact_choice/client_contact/client_chat and
+--     merchant_contact_choice/merchant_contact/merchant_chat, which had
+--     identical content) were deleted 2026-08-12 once every node's
+--     quick_replies was repointed at the shared nodes.
+--   - root's third card is "WooW оноо & Урамшуулал 🎁" → the loyalty
+--     node (4-card carousel: WooW оноо⭐, Loyalty💳, Идэвхтэй
+--     урамшуулал🎉, Урамшууллын хүрд🎁→wheel). Replaces the old setup
+--     where the wheel campaign was root's third card directly — a
+--     temporary promo no longer permanently occupies a third of the
+--     home screen. loyalty_points/loyalty_program/loyalty_active are
+--     "coming soon" placeholder leaves pending real content.
 --   list    — Facebook's List Template. IMPLEMENTED BUT NOT USABLE:
 --             live testing (2026-08-12) showed Facebook's Graph API
 --             rejects list templates whose element buttons use type
@@ -253,13 +272,42 @@ revoke all on public.bot_nodes from anon, authenticated;
 -- (brand navy/gold) — swap image_url values for real photography/art
 -- whenever it's ready; no code change needed, just update the row.
 --
+-- Customer (client) and Merchant menus were restructured 2026-08-12
+-- around jobs-to-be-done instead of products — e.g. client no longer
+-- opens straight into loan-product cards, it opens into "Зээлийн эрх &
+-- нөхцөл" / "Зээл төлөх / сунгах" / "Худалдан авалт хийх" / "Апп &
+-- бүртгэл" / "WooW оноо & урамшуулал" / "Тусламж". Same pattern applied
+-- to merchant. The old flat "client_guide" and "merchant_existing"
+-- wrapper submenus were retired — their children now hang directly off
+-- the new job-based parents.
+--
 -- See the add_client_soft_delete-era migration history / apply_migration
--- calls for the actual seeded node content (root, client, client_loan_
--- purchase, client_loan_cash, client_app, client_guide + 4 leaves,
--- client_contact, merchant, merchant_new + benefits/guide, merchant_
--- existing + sales/find guides, merchant_contact, wheel). Query
--- `select key, text, template_type, quick_replies, buttons, cards from
--- public.bot_nodes` in the SQL editor to see/edit live content.
+-- calls for the full seeded node content. Current node set (2026-08-12):
+-- root (4 cards incl. WooW Зөвлөх), client, client_loan_terms + its 2
+-- loan-type leaves, client_loan_manage + pay/extend leaves,
+-- client_guide_purchase (leaf), client_app_register + app/register
+-- leaves, merchant, merchant_new + benefits/guide, merchant_criteria
+-- (stub), merchant_sales_guide (leaf), merchant_settlement (stub),
+-- merchant_find_guide (leaf), loyalty + 3 coming-soon leaves
+-- (loyalty_points/loyalty_program/loyalty_active), wheel, and the
+-- universal contact_choice/contact/chat trio. Query `select key, text,
+-- template_type, quick_replies, buttons, cards from public.bot_nodes`
+-- in the SQL editor to see/edit live content.
+
+-- Native persistent menu (the ≡ icon next to Messenger's text composer,
+-- always visible) is set directly via the Graph API
+-- (/me/messenger_profile), NOT through bot_nodes — it's Page-level
+-- config, not conversation content. Currently 3 flat items mirroring
+-- root's first 3 cards (Харилцагч/Мерчант/WooW оноо & Урамшуулал).
+-- Facebook's nested/multi-level persistent submenus are effectively
+-- dead: live testing on 2026-08-12 showed `type: "nested"` always
+-- returns `(#100) Invalid button type` regardless of payload, so the
+-- menu is capped at 3 flat items with no working way to group more
+-- under a submenu. To change it, re-POST persistent_menu with the
+-- Page's access token (found in bot_config) — the get_started button
+-- must already be set first, or Facebook rejects the request with
+-- "(#100) You must set a Get Started button if you also wish to use
+-- persistent menu."
 
 -- bot_debug_log — diagnostic table added while troubleshooting the list
 -- template rejection above. Records any failed Send API call (status
@@ -274,6 +322,115 @@ create table if not exists public.bot_debug_log (
 );
 alter table public.bot_debug_log enable row level security;
 revoke all on public.bot_debug_log from anon, authenticated;
+
+-- ============================================================
+-- 9. Signed deep-link tokens — skip the manual "confirm phone"
+--    screen for clients coming straight from the Messenger
+--    "Хүрдээ эргүүлэх" button.
+--
+--    The messenger-webhook edge function signs a short-lived token
+--    (HMAC-SHA256 over code|phone|expiry, using the shared secret
+--    stored below) and appends it to the button URL as `&t=...`.
+--    The web app calls verify_link_token(code, token) on load; if
+--    valid, it skips straight to the wheel. Any link without a
+--    valid/unexpired token (bare code typed in, old forwarded link,
+--    tampered token) falls back to the existing manual phone screen
+--    — verify_phone_match above is untouched and still guards that
+--    path.
+--
+--    IMPORTANT: the value inserted into app_secrets below MUST be
+--    set as the EXACT same string in the messenger-webhook edge
+--    function's secret (Supabase Dashboard → Edge Functions →
+--    messenger-webhook → Secrets → LINK_TOKEN_SECRET), or token
+--    verification will always fail.
+-- ============================================================
+
+create extension if not exists pgcrypto;
+
+create table if not exists public.app_secrets (
+  key   text primary key,
+  value text not null
+);
+alter table public.app_secrets enable row level security;
+-- Intentionally no policies — RLS with zero policies denies anon
+-- and authenticated entirely. Only SECURITY DEFINER functions
+-- (which run as the table owner, bypassing RLS) can read this.
+
+-- Replace the placeholder below with the real secret before running,
+-- then set the identical value as the edge function's
+-- LINK_TOKEN_SECRET. Re-running this INSERT later rotates the
+-- secret (instantly invalidates all outstanding links).
+insert into public.app_secrets (key, value)
+values ('link_token_secret', 'REPLACE_WITH_GENERATED_SECRET')
+on conflict (key) do update set value = excluded.value;
+
+create or replace function public.verify_link_token(p_code text, p_token text)
+returns table (
+  valid     boolean,
+  user_type text,
+  spins     integer,
+  phone     text
+)
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_secret   text;
+  v_expiry   bigint;
+  v_sig      text;
+  v_expected text;
+  v_client   record;
+begin
+  if p_token is null or position('.' in p_token) = 0 then
+    return query select false, null::text, null::integer, null::text;
+    return;
+  end if;
+
+  v_expiry := nullif(split_part(p_token, '.', 1), '')::bigint;
+  v_sig    := split_part(p_token, '.', 2);
+
+  if v_expiry is null or v_expiry < extract(epoch from now()) then
+    return query select false, null::text, null::integer, null::text;
+    return;
+  end if;
+
+  select value into v_secret from public.app_secrets where key = 'link_token_secret';
+  if v_secret is null then
+    return query select false, null::text, null::integer, null::text;
+    return;
+  end if;
+
+  select c.id, c.user_type, c.spins, c.spins_used, c.phone, c.enabled, c.deleted_at
+    into v_client
+  from public.clients c
+  where c.code = upper(p_code)
+  limit 1;
+
+  if v_client.id is null or v_client.enabled = false or v_client.deleted_at is not null then
+    return query select false, null::text, null::integer, null::text;
+    return;
+  end if;
+
+  v_expected := encode(
+    hmac(
+      (upper(p_code) || '|' || coalesce(v_client.phone, '') || '|' || v_expiry::text)::bytea,
+      v_secret::bytea,
+      'sha256'
+    ),
+    'hex'
+  );
+
+  if v_expected <> v_sig then
+    return query select false, null::text, null::integer, null::text;
+    return;
+  end if;
+
+  return query select true, v_client.user_type, (v_client.spins - v_client.spins_used), v_client.phone;
+end;
+$$;
+
+grant execute on function public.verify_link_token(text, text) to anon;
 
 -- ============================================================
 -- Still recommended, dashboard-only (not SQL):

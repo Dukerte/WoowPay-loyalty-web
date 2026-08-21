@@ -4,7 +4,7 @@ import type { UserType } from '../types';
 const SUPA_URL = (import.meta.env.VITE_SUPABASE_URL as string) || '';
 const SUPA_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || '';
 
-export type FunnelEvent = 'code_valid' | 'phone_verified' | 'share_clicked';
+export type FunnelEvent = 'code_valid' | 'phone_verified' | 'share_clicked' | 'link_token_verified';
 
 /**
  * Minimal funnel instrumentation — no third-party analytics/pixel,
