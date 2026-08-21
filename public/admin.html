@@ -521,13 +521,19 @@
       <div class="stat-card" style="margin-bottom:20px;">
         <div class="stat-label">Booth mode</div>
         <div style="font-size:.82rem;color:var(--muted);margin-top:8px;line-height:1.5;">
-          Утасны дугаараа шалгаад, зөвхөн ажилтан өөрөө биечлэн баталгаажуулсны дараа товч дар.
-          Апп татсан эсэх / ФБ хуудас дагасан эсэхийг өөрөө нүдээр шалгасны дараа л эрх нэмнэ үү.
+          Шинэ болон бүртгэлтэй харилцагчид зориулагдсан. Утасны дугаараа шалгаад, зөвхөн ажилтан өөрөө биечлэн
+          баталгаажуулсны дараа товч дар. Апп татсан эсэх / ФБ хуудас дагасан эсэхийг өөрөө нүдээр шалгасны дараа л эрх нэмнэ үү.
+          Хэрэв дугаар бүртгэлгүй бол шинэ харилцагч автоматаар үүснэ.
         </div>
       </div>
       <div class="login-field">
         <label>Утасны дугаар</label>
         <input type="text" id="booth-phone" placeholder="9911XXXX" inputmode="numeric"
+               style="width:100%;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:1.1rem;outline:none;" />
+      </div>
+      <div class="login-field">
+        <label>Нэр <span style="color:var(--muted);font-weight:400;">(шинэ харилцагч бол заавал)</span></label>
+        <input type="text" id="booth-name" placeholder="Нэр"
                style="width:100%;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:1.1rem;outline:none;" />
       </div>
       <div id="booth-client-info" style="font-size:.85rem;color:var(--muted);min-height:20px;margin-bottom:16px;"></div>
@@ -779,7 +785,9 @@ function switchView(view) {
     if (info) info.textContent = '';
     if (result) result.innerHTML = '';
     const phoneInput = document.getElementById('booth-phone');
+    const nameInput  = document.getElementById('booth-name');
     if (phoneInput) { phoneInput.value = ''; setTimeout(() => phoneInput.focus(), 50); }
+    if (nameInput) nameInput.value = '';
   }
 }
 
@@ -1735,10 +1743,12 @@ let boothBusy = false;
 async function creditBoothSpins(action, amount) {
   if (boothBusy) return;
   const phoneInput = document.getElementById('booth-phone');
+  const nameInput   = document.getElementById('booth-name');
   const infoEl      = document.getElementById('booth-client-info');
   const resultEl    = document.getElementById('booth-result');
   const rawPhone    = phoneInput ? phoneInput.value : '';
   const phone       = normalizePhone(rawPhone);
+  const name        = nameInput ? nameInput.value.trim() : '';
 
   if (!phone || phone.length < 6) {
     resultEl.innerHTML = `<div style="color:var(--red)">Утасны дугаараа зөв бичнэ үү.</div>`;
@@ -1751,7 +1761,7 @@ async function creditBoothSpins(action, amount) {
   try {
     const { data: clients, error: findErr } = await fetchAllRows(
       'clients',
-      'id, name, phone, spins, spins_used, deleted_at',
+      'id, name, phone, code, spins, spins_used, deleted_at',
       q => q.is('deleted_at', null),
     );
 
@@ -1761,31 +1771,66 @@ async function creditBoothSpins(action, amount) {
     }
 
     const match = (clients || []).find(c => normalizePhone(c.phone) === phone);
-
-    if (!match) {
-      infoEl.textContent = '';
-      resultEl.innerHTML = `<div style="color:var(--red)">❌ Энэ дугаартай харилцагч олдсонгүй. Дугаараа шалгана уу эсвэл эхлээд бүртгүүлнэ үү.</div>`;
-      return;
-    }
-
-    infoEl.textContent = `${match.name || 'Нэргүй'} — одоогийн эрх: ${match.spins || 0} (ашигласан: ${match.spins_used || 0})`;
-
-    const newSpins = (match.spins || 0) + amount;
-    const { error: updErr } = await sbClient
-      .from('clients')
-      .update({ spins: newSpins })
-      .eq('id', match.id);
-
-    if (updErr) {
-      resultEl.innerHTML = `<div style="color:var(--red)">Эрх нэмэхэд алдаа гарлаа: ${updErr.message}</div>`;
-      return;
-    }
-
     const actionLabel = action === 'app' ? 'Апп татсан' : 'ФБ хуудас дагасан';
-    resultEl.innerHTML = `<div style="color:var(--green,#2ecc71)">✅ ${match.name || 'Харилцагч'} — ${actionLabel} (+${amount}). Нийт эрх: ${newSpins}</div>`;
-    infoEl.textContent = `${match.name || 'Нэргүй'} — одоогийн эрх: ${newSpins} (ашигласан: ${match.spins_used || 0})`;
+
+    if (match) {
+      // Existing client — just top up spins.
+      infoEl.textContent = `${match.name || 'Нэргүй'} — одоогийн эрх: ${match.spins || 0} (ашигласан: ${match.spins_used || 0})`;
+
+      const newSpins = (match.spins || 0) + amount;
+      const { error: updErr } = await sbClient
+        .from('clients')
+        .update({ spins: newSpins })
+        .eq('id', match.id);
+
+      if (updErr) {
+        resultEl.innerHTML = `<div style="color:var(--red)">Эрх нэмэхэд алдаа гарлаа: ${updErr.message}</div>`;
+        return;
+      }
+
+      resultEl.innerHTML = `<div style="color:var(--green,#2ecc71)">✅ ${match.name || 'Харилцагч'} (бүртгэлтэй) — ${actionLabel} (+${amount}). Нийт эрх: ${newSpins}</div>`;
+      infoEl.textContent = `${match.name || 'Нэргүй'} — одоогийн эрх: ${newSpins} (ашигласан: ${match.spins_used || 0})`;
+      if (phoneInput) { phoneInput.value = ''; phoneInput.focus(); }
+      if (nameInput) nameInput.value = '';
+      showToast(`${actionLabel}: +${amount} эрх нэмэгдлээ ✓`, 'success');
+      return;
+    }
+
+    // No existing client with this phone — booth's main purpose is to
+    // sign up NEW clients, so create one with the earned spins.
+    if (!name) {
+      resultEl.innerHTML = `<div style="color:var(--red)">❌ Шинэ харилцагч учир нэрийг заавал бичнэ үү.</div>`;
+      return;
+    }
+
+    const usedCodes = new Set((clients || []).map(c => c.code));
+    const code = randomCode('WC', usedCodes);
+
+    const { data: inserted, error: insErr } = await sbClient
+      .from('clients')
+      .insert({
+        name,
+        phone,
+        code,
+        user_type: 'client',
+        spins: amount,
+        spins_used: 0,
+        enabled: true,
+        notes: 'Booth mode-оор бүртгэсэн',
+      })
+      .select('id, name, spins, spins_used')
+      .single();
+
+    if (insErr) {
+      resultEl.innerHTML = `<div style="color:var(--red)">Шинэ харилцагч үүсгэхэд алдаа гарлаа: ${insErr.message}</div>`;
+      return;
+    }
+
+    resultEl.innerHTML = `<div style="color:var(--green,#2ecc71)">✅ Шинэ харилцагч бүртгэгдлээ: ${inserted.name} — ${actionLabel} (+${amount}). Код: ${code}, Нийт эрх: ${inserted.spins}</div>`;
+    infoEl.textContent = `${inserted.name} — шинэ код: ${code}, эрх: ${inserted.spins}`;
     if (phoneInput) { phoneInput.value = ''; phoneInput.focus(); }
-    showToast(`${actionLabel}: +${amount} эрх нэмэгдлээ ✓`, 'success');
+    if (nameInput) nameInput.value = '';
+    showToast(`Шинэ харилцагч + ${actionLabel}: +${amount} эрх ✓`, 'success');
   } finally {
     boothBusy = false;
   }
