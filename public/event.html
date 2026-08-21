@@ -98,10 +98,15 @@
   .card-body { flex: 1; min-width: 0; }
   .card-title { font-weight: 700; font-size: .98rem; margin-bottom: 2px; }
   .card-sub { font-size: .8rem; color: var(--white-60); }
+  .card-cta { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
   .card-pill {
-    flex: none; background: var(--yellow); color: #10213F;
+    background: var(--yellow); color: #10213F;
     font-weight: 800; font-size: .78rem; padding: 6px 12px;
     border-radius: var(--r-btn); white-space: nowrap;
+  }
+  .card-tap {
+    font-size: .68rem; font-weight: 600; color: var(--cyan);
+    white-space: nowrap;
   }
 
   .note {
@@ -131,7 +136,10 @@
             <div class="card-title">Апп татах</div>
             <div class="card-sub">WoowPay апп-ыг татаж суулган бүртгүүлэх</div>
           </div>
-          <div class="card-pill">+2 эрх</div>
+          <div class="card-cta">
+            <div class="card-pill">+2 эрх</div>
+            <div class="card-tap">Энд дарна уу ›</div>
+          </div>
         </a>
 
         <a class="card" href="https://www.facebook.com/woowpay" target="_blank" rel="noopener">
@@ -140,7 +148,10 @@
             <div class="card-title">Facebook хуудас дагах</div>
             <div class="card-sub">facebook.com/woowpay</div>
           </div>
-          <div class="card-pill">+1 эрх</div>
+          <div class="card-cta">
+            <div class="card-pill">+1 эрх</div>
+            <div class="card-tap">Энд дарна уу ›</div>
+          </div>
         </a>
       </div>
 
