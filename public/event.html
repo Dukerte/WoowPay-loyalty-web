@@ -64,12 +64,8 @@
   .logo { height: 28px; margin-bottom: 28px; }
 
   .eyebrow {
-    font-size: .78rem; font-weight: 700; letter-spacing: .06em;
-    color: var(--cyan); text-transform: uppercase; margin-bottom: 10px;
-  }
-  .sub {
-    font-size: .95rem; line-height: 1.5; color: var(--white-60);
-    max-width: 340px; margin: 0 auto 30px;
+    font-size: .85rem; font-weight: 700; letter-spacing: .04em;
+    color: var(--cyan); text-transform: uppercase; margin-bottom: 22px;
   }
 
   .wheel-img {
@@ -94,9 +90,11 @@
   .card:hover { background: rgba(255,255,255,.13); border-color: rgba(255,255,255,.22); }
   .card-icon {
     flex: none; width: 46px; height: 46px; border-radius: 14px;
-    background: var(--white-12); display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem;
+    overflow: hidden; display: flex; align-items: center; justify-content: center;
   }
+  .card-icon img { width: 100%; height: 100%; object-fit: contain; }
+  .card-icon-fb { background: var(--white-12); padding: 8px; }
+  .card-icon-fb img { border-radius: 50%; }
   .card-body { flex: 1; min-width: 0; }
   .card-title { font-weight: 700; font-size: .98rem; margin-bottom: 2px; }
   .card-sub { font-size: .8rem; color: var(--white-60); }
@@ -124,21 +122,20 @@
       <img src="/event-title.webp" class="title-img" alt="Урамшуулын хурд" />
       <img src="/event-wheel.webp" class="wheel-img" alt="" />
 
-      <div class="eyebrow">Урамшууллын хүрдний эрх 🎁авах:</div>
-      <p class="sub">* WoowPay апп-ыг татаж суулган бүртгүүлэх</p>
+      <div class="eyebrow">🎁 Урамшууллын хүрдний эрх авах:</div>
 
       <div class="cards">
         <a class="card" href="https://onelink.to/4z2e53" target="_blank" rel="noopener">
-          <div class="card-icon">📲</div>
+          <div class="card-icon"><img src="/apple-touch-icon.png" alt="" /></div>
           <div class="card-body">
             <div class="card-title">Апп татах</div>
-            <div class="card-sub">WoowPay аппыг татаж суулгах</div>
+            <div class="card-sub">WoowPay апп-ыг татаж суулган бүртгүүлэх</div>
           </div>
           <div class="card-pill">+2 эрх</div>
         </a>
 
         <a class="card" href="https://www.facebook.com/woowpay" target="_blank" rel="noopener">
-          <div class="card-icon">👍</div>
+          <div class="card-icon card-icon-fb"><img src="/icon-facebook.webp" alt="" /></div>
           <div class="card-body">
             <div class="card-title">Facebook хуудас дагах</div>
             <div class="card-sub">facebook.com/woowpay</div>
