@@ -383,7 +383,7 @@
         <input type="datetime-local" class="filter-sel" id="filter-date-to" onchange="filterClients()" style="padding:4px 8px" title="Дуусах огноо/цаг" />
         <button class="btn-sm" onclick="clearDateFilter()" title="Огнооны шүүлтүүр цэвэрлэх" style="padding:4px 8px">✕</button>
       </span>
-      <button class="btn-sm btn-import" onclick="document.getElementById('csv-file').click()" title="Заавал: Нэр, Утас багана. Мөн байвал ашиглана: Код, Төрөл (Мерчант/Харилцагч), Эргэлт (эсвэл Эрхийн тоо), Идэвхтэй, Тэмдэглэл. Код баганагүй эсвэл хоосон бол систем автоматаар давхцахгүй код үүсгэнэ.">📥 CSV/XLSX Оруулах</button>
+      <button class="btn-sm btn-import" id="import-btn" onclick="document.getElementById('csv-file').click()" title="Заавал: Нэр, Утас багана. Мөн байвал ашиглана: Код, Төрөл (Мерчант/Харилцагч), Эргэлт (эсвэл Эрхийн тоо), Идэвхтэй, Тэмдэглэл. Код баганагүй эсвэл хоосон бол систем автоматаар давхцахгүй код үүсгэнэ.">📥 CSV/XLSX Оруулах</button>
       <input type="file" id="csv-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importFile(event)" />
       <button class="btn-sm btn-export" onclick="exportFile()">📤 CSV/XLSX Татах</button>
       <button class="btn-sm btn-add" onclick="openModal()">+ Шинэ харилцагч</button>
@@ -1810,23 +1810,66 @@ async function importRows(rows) {
   }
   if (!inserts.length && !topUps.size) { showToast('Хүчинтэй мөр олдсонгүй', 'error'); return; }
 
-  if (inserts.length) {
-    const { error } = await sbClient.from('clients').upsert(inserts, { onConflict: 'code' });
-    if (error) { showToast('Импортод алдаа: ' + error.message, 'error'); return; }
+  // Large files (thousands+ of rows) must never go in as one request:
+  // a single multi-megabyte upsert risks gateway payload limits and
+  // request timeouts, and — critically — an all-or-nothing failure
+  // gives no indication of what did or didn't make it in. Chunking
+  // keeps each request small and fast, and a failure in one chunk
+  // doesn't block the rest — everything is reported at the end so
+  // nothing silently vanishes into an ambiguous partial state.
+  const CHUNK = 500;
+  const importBtn = document.getElementById('import-btn');
+  const originalBtnText = importBtn ? importBtn.textContent : '';
+  const setProgress = (msg) => { if (importBtn) importBtn.textContent = msg; };
+
+  let insertedOk = 0;
+  const insertErrors = [];
+  const totalInsertChunks = Math.ceil(inserts.length / CHUNK) || 0;
+  for (let i = 0; i < inserts.length; i += CHUNK) {
+    const chunk = inserts.slice(i, i + CHUNK);
+    setProgress(`⏳ Импортлож байна... ${Math.floor(i / CHUNK) + 1}/${totalInsertChunks}`);
+    const { error } = await sbClient.from('clients').upsert(chunk, { onConflict: 'code' });
+    if (error) insertErrors.push(`Мөр ${i + 2}–${i + chunk.length + 1}: ${error.message}`);
+    else insertedOk += chunk.length;
   }
 
-  for (const [id, addSpins] of topUps) {
-    const existing = (existingRows || []).find(r => r.id === id);
-    const { error } = await sbClient
-      .from('clients')
-      .update({ spins: (existing ? existing.spins : 0) + addSpins })
-      .eq('id', id);
-    if (error) { showToast('Эрх нэмэхэд алдаа: ' + error.message, 'error'); return; }
+  // Top-ups (existing clients getting extra spins) are batched the
+  // same way — this used to be one sequential request PER client,
+  // which for thousands of overlapping phones would take minutes and
+  // had the same all-or-nothing fragility as the unbatched insert.
+  // A single batched upsert keyed on `id`, with only `id`+`spins` in
+  // the payload, updates just that column per row via Postgres's
+  // ON CONFLICT DO UPDATE — everything else on the row is untouched.
+  const existingById = new Map((existingRows || []).map(r => [r.id, r]));
+  const topUpRows = Array.from(topUps.entries()).map(([id, addSpins]) => ({
+    id,
+    spins: (existingById.get(id)?.spins || 0) + addSpins,
+  }));
+  let toppedUpOk = 0;
+  const topUpErrors = [];
+  const totalTopUpChunks = Math.ceil(topUpRows.length / CHUNK) || 0;
+  for (let i = 0; i < topUpRows.length; i += CHUNK) {
+    const chunk = topUpRows.slice(i, i + CHUNK);
+    setProgress(`⏳ Эрх нэмж байна... ${Math.floor(i / CHUNK) + 1}/${totalTopUpChunks}`);
+    const { error } = await sbClient.from('clients').upsert(chunk, { onConflict: 'id' });
+    if (error) topUpErrors.push(`Багц ${Math.floor(i / CHUNK) + 1}: ${error.message}`);
+    else toppedUpOk += chunk.length;
   }
+
+  setProgress(originalBtnText);
 
   const genNote    = generatedCount ? ` (${generatedCount} код автоматаар үүсгэсэн)` : '';
-  const mergedNote = mergedCount ? `, ${mergedCount} давхардсан дугаарт эрх нэмэгдлээ (кодгүй)` : '';
-  showToast(`${inserts.length} шинэ харилцагч импортлогдлоо ✓${genNote}${mergedNote}`, 'success');
+  const errCount    = insertErrors.length + topUpErrors.length;
+  if (errCount) {
+    console.error('Import errors:', [...insertErrors, ...topUpErrors]);
+    showToast(
+      `⚠️ ${insertedOk}/${inserts.length} шинээр, ${toppedUpOk}/${topUpRows.length} эрх нэмэгдлээ. ${errCount} багц алдаатай — консол лог-г шалгана уу.`,
+      'error',
+    );
+  } else {
+    const mergedNote = mergedCount ? `, ${mergedCount} давхардсан дугаарт эрх нэмэгдлээ (кодгүй)` : '';
+    showToast(`${insertedOk} шинэ харилцагч импортлогдлоо ✓${genNote}${mergedNote}`, 'success');
+  }
   loadClients();
 }
 
