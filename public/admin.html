@@ -334,6 +334,7 @@
       <button class="topbar-tab active" id="tab-clients" onclick="switchView('clients')">👥 Харилцагчид</button>
       <button class="topbar-tab" id="tab-prizes" onclick="switchView('prizes')">🎡 Шагнал ба магадлал</button>
       <button class="topbar-tab" id="tab-raffle" onclick="switchView('raffle')">🎟️ Супер сугалаа</button>
+      <button class="topbar-tab" id="tab-booth" onclick="switchView('booth')">📍 Booth mode</button>
     </div>
     <span class="topbar-user" id="topbar-user"></span>
     <button class="btn-logout" onclick="logout()">Гарах</button>
@@ -511,6 +512,30 @@
           <tr class="empty-row"><td colspan="7">Ачааллаж байна...</td></tr>
         </tbody>
       </table>
+    </div>
+  </div>
+
+  <!-- ══ BOOTH MODE VIEW ══════════════════════════════════════════ -->
+  <div class="view" id="view-booth">
+    <div style="max-width:460px;margin:40px auto;padding:0 24px;">
+      <div class="stat-card" style="margin-bottom:20px;">
+        <div class="stat-label">Booth mode</div>
+        <div style="font-size:.82rem;color:var(--muted);margin-top:8px;line-height:1.5;">
+          Утасны дугаараа шалгаад, зөвхөн ажилтан өөрөө биечлэн баталгаажуулсны дараа товч дар.
+          Апп татсан эсэх / ФБ хуудас дагасан эсэхийг өөрөө нүдээр шалгасны дараа л эрх нэмнэ үү.
+        </div>
+      </div>
+      <div class="login-field">
+        <label>Утасны дугаар</label>
+        <input type="text" id="booth-phone" placeholder="9911XXXX" inputmode="numeric"
+               style="width:100%;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:1.1rem;outline:none;" />
+      </div>
+      <div id="booth-client-info" style="font-size:.85rem;color:var(--muted);min-height:20px;margin-bottom:16px;"></div>
+      <div style="display:flex;flex-direction:column;gap:12px;">
+        <button class="btn-primary" style="background:var(--cyan);padding:18px;font-size:1rem;" onclick="creditBoothSpins('app', 2)">📲 +2 Апп татсан</button>
+        <button class="btn-primary" style="background:var(--green,#2ecc71);padding:18px;font-size:1rem;" onclick="creditBoothSpins('fb', 1)">👍 +1 ФБ хуудас дагасан</button>
+      </div>
+      <div id="booth-result" style="margin-top:20px;font-size:.9rem;line-height:1.5;"></div>
     </div>
   </div>
 </div>
@@ -741,11 +766,21 @@ function switchView(view) {
   document.getElementById('view-clients').classList.toggle('active', view === 'clients');
   document.getElementById('view-prizes').classList.toggle('active', view === 'prizes');
   document.getElementById('view-raffle').classList.toggle('active', view === 'raffle');
+  document.getElementById('view-booth').classList.toggle('active', view === 'booth');
   document.getElementById('tab-clients').classList.toggle('active', view === 'clients');
   document.getElementById('tab-prizes').classList.toggle('active', view === 'prizes');
   document.getElementById('tab-raffle').classList.toggle('active', view === 'raffle');
+  document.getElementById('tab-booth').classList.toggle('active', view === 'booth');
   if (view === 'prizes' && !prizesLoaded) { prizesLoaded = true; loadPrizes(); }
   if (view === 'raffle' && !raffleLoaded) { raffleLoaded = true; loadRaffleEntries(); }
+  if (view === 'booth') {
+    const info = document.getElementById('booth-client-info');
+    const result = document.getElementById('booth-result');
+    if (info) info.textContent = '';
+    if (result) result.innerHTML = '';
+    const phoneInput = document.getElementById('booth-phone');
+    if (phoneInput) { phoneInput.value = ''; setTimeout(() => phoneInput.focus(), 50); }
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1691,6 +1726,69 @@ function randomCode(prefix, usedCodes) {
 function normalizePhone(raw) {
   const digits = String(raw || '').replace(/\D/g, '');
   return digits.slice(-8);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  BOOTH MODE — manual staff-verified spin crediting
+// ══════════════════════════════════════════════════════════════
+let boothBusy = false;
+async function creditBoothSpins(action, amount) {
+  if (boothBusy) return;
+  const phoneInput = document.getElementById('booth-phone');
+  const infoEl      = document.getElementById('booth-client-info');
+  const resultEl    = document.getElementById('booth-result');
+  const rawPhone    = phoneInput ? phoneInput.value : '';
+  const phone       = normalizePhone(rawPhone);
+
+  if (!phone || phone.length < 6) {
+    resultEl.innerHTML = `<div style="color:var(--red)">Утасны дугаараа зөв бичнэ үү.</div>`;
+    return;
+  }
+
+  boothBusy = true;
+  resultEl.innerHTML = `<div style="color:var(--muted)">⏳ Хайж байна...</div>`;
+
+  try {
+    const { data: clients, error: findErr } = await fetchAllRows(
+      'clients',
+      'id, name, phone, spins, spins_used, deleted_at',
+      q => q.is('deleted_at', null),
+    );
+
+    if (findErr) {
+      resultEl.innerHTML = `<div style="color:var(--red)">Алдаа: ${findErr.message}</div>`;
+      return;
+    }
+
+    const match = (clients || []).find(c => normalizePhone(c.phone) === phone);
+
+    if (!match) {
+      infoEl.textContent = '';
+      resultEl.innerHTML = `<div style="color:var(--red)">❌ Энэ дугаартай харилцагч олдсонгүй. Дугаараа шалгана уу эсвэл эхлээд бүртгүүлнэ үү.</div>`;
+      return;
+    }
+
+    infoEl.textContent = `${match.name || 'Нэргүй'} — одоогийн эрх: ${match.spins || 0} (ашигласан: ${match.spins_used || 0})`;
+
+    const newSpins = (match.spins || 0) + amount;
+    const { error: updErr } = await sbClient
+      .from('clients')
+      .update({ spins: newSpins })
+      .eq('id', match.id);
+
+    if (updErr) {
+      resultEl.innerHTML = `<div style="color:var(--red)">Эрх нэмэхэд алдаа гарлаа: ${updErr.message}</div>`;
+      return;
+    }
+
+    const actionLabel = action === 'app' ? 'Апп татсан' : 'ФБ хуудас дагасан';
+    resultEl.innerHTML = `<div style="color:var(--green,#2ecc71)">✅ ${match.name || 'Харилцагч'} — ${actionLabel} (+${amount}). Нийт эрх: ${newSpins}</div>`;
+    infoEl.textContent = `${match.name || 'Нэргүй'} — одоогийн эрх: ${newSpins} (ашигласан: ${match.spins_used || 0})`;
+    if (phoneInput) { phoneInput.value = ''; phoneInput.focus(); }
+    showToast(`${actionLabel}: +${amount} эрх нэмэгдлээ ✓`, 'success');
+  } finally {
+    boothBusy = false;
+  }
 }
 
 /** Shared row -> upsert logic for both CSV and XLSX import. Reads
