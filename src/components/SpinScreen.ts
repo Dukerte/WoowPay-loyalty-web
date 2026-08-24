@@ -1,6 +1,7 @@
 import type { Prize, UserType } from '../types';
 import { SpinWheel } from './SpinWheel';
 import { ResultModal } from './ResultModal';
+import { PrizeListModal } from './PrizeListModal';
 import { recordSpin } from '../data/clientService';
 
 export function SpinScreen(
@@ -91,6 +92,16 @@ export function SpinScreen(
   updateLabel();
 
   const modal = ResultModal();
+  const prizeListModal = PrizeListModal(prizes);
+
+  // Quiet secondary link, not a competing CTA — the primary action on
+  // this screen is always "Эргүүлэх!". This just satisfies curiosity
+  // for anyone who wants to know what's in the pool before spinning.
+  const prizeListLink = document.createElement('button');
+  prizeListLink.type = 'button';
+  prizeListLink.className = 'ss-prizelist-link';
+  prizeListLink.textContent = '🎁 Идэвхтэй шагналууд харах';
+  prizeListLink.addEventListener('click', () => prizeListModal.show());
 
   const { el: canvas, spin, isSpinning } = SpinWheel({
     prizes,
@@ -143,7 +154,9 @@ export function SpinScreen(
   el.appendChild(wheelWrap);
   el.appendChild(spinBtn);
   el.appendChild(spinLabel);
+  el.appendChild(prizeListLink);
   el.appendChild(modal.el);
+  el.appendChild(prizeListModal.el);
 
   return el;
 }
