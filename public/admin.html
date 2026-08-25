@@ -1483,8 +1483,15 @@ function renderRaffleTable() {
 }
 
 function exportRaffleFile() {
+  // Reuse the same search filter as the on-screen table so the
+  // download matches what's currently visible, not the whole list.
+  const q = (document.getElementById('raffle-search-input').value || '').toLowerCase();
+  const visible = raffleEntries.filter(r => {
+    const c = r.client;
+    return !q || (c.name||'').toLowerCase().includes(q) || (c.phone||'').includes(q) || (c.code||'').toLowerCase().includes(q);
+  });
   const headers = ['Нэр','Утас','Код','Нийт эрх','Сүүлд хожсон'];
-  const rows = [headers, ...raffleEntries.map(r => [
+  const rows = [headers, ...visible.map(r => [
     r.client.name, r.client.phone, r.client.code, r.total,
     r.lastWonAt ? new Date(r.lastWonAt).toLocaleString('mn-MN') : ''
   ])];
@@ -1644,21 +1651,22 @@ const EXPORT_HEADERS = ['Нэр','Утас','Код','Төрөл','Эргэлт'
 
 /** One row per spin (same expansion as the on-screen table) — a
     client who spun 3 times exports as 3 rows, each with that spin's
-    prize, so nothing gets collapsed/lost in the report. */
+    prize, so nothing gets collapsed/lost in the report.
+    Exports exactly what's currently on screen: reuses `filteredList`
+    (search box, type/status dropdowns, date range, and trash view all
+    already applied there) instead of `allClients`, so the download
+    always matches the active filter instead of silently dumping the
+    whole table. */
 function buildExportRows() {
   const rows = [EXPORT_HEADERS];
-  allClients.forEach(c => {
-    const prizes = prizesByClient[c.id];
-    const list = (prizes && prizes.length) ? prizes : [null];
-    list.forEach(prize => {
-      rows.push([
-        c.name, c.phone, c.code, c.user_type, c.spins, c.spins_used,
-        c.enabled ? 'тийм' : 'үгүй',
-        prize ? prize.label : '',
-        prize ? (prize.fulfilled ? 'тийм' : 'үгүй') : '',
-        c.notes || ''
-      ]);
-    });
+  filteredList.forEach(({ client: c, prize }) => {
+    rows.push([
+      c.name, c.phone, c.code, c.user_type, c.spins, c.spins_used,
+      c.enabled ? 'тийм' : 'үгүй',
+      prize ? prize.label : '',
+      prize ? (prize.fulfilled ? 'тийм' : 'үгүй') : '',
+      c.notes || ''
+    ]);
   });
   return rows;
 }
