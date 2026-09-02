@@ -1439,12 +1439,19 @@ async function loadRaffleEntries() {
   raffleEntries = Object.keys(byClient).map(cid => {
     const client = allClients.find(c => c.id === cid);
     return client ? { client, ...byClient[cid] } : null;
-  }).filter(Boolean).sort((a, b) => b.total - a.total);
+  }).filter(Boolean).sort((a, b) => new Date(b.lastWonAt) - new Date(a.lastWonAt));
 
   document.getElementById('r-total-entries').textContent = raffleEntries.reduce((s, r) => s + r.total, 0);
   document.getElementById('r-total-clients').textContent = raffleEntries.length;
 
   renderRaffleTable();
+}
+
+function formatWonAt(iso) {
+  const d = new Date(iso);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}, ${hh}:${mm}`;
 }
 
 function renderRaffleTable() {
@@ -1468,7 +1475,7 @@ function renderRaffleTable() {
     r.wins.forEach(w => { counts[w.n] = (counts[w.n] || 0) + 1; });
     const history = Object.keys(counts).sort((a, b) => b - a)
       .map(n => `+${n} × ${counts[n]}`).join(', ');
-    const date = r.lastWonAt ? new Date(r.lastWonAt).toLocaleDateString('mn-MN') : '—';
+    const date = r.lastWonAt ? formatWonAt(r.lastWonAt) : '—';
     return `
       <tr>
         <td>${esc(c.name)}</td>
