@@ -1895,7 +1895,7 @@ async function importRows(rows) {
   // before this fix), the earliest — most likely already shared with
   // the client — is the one topped up.
   const { data: existingRows, error: fetchErr } = await fetchAllRows(
-    'clients', 'id, code, phone, spins, deleted_at',
+    'clients', 'id, name, code, phone, user_type, spins, deleted_at',
     q => q.order('created_at', { ascending: true })
   );
   if (fetchErr) { showToast('Одоо байгаа кодуудыг уншиж чадсангүй: ' + fetchErr.message, 'error'); return; }
@@ -1988,14 +1988,32 @@ async function importRows(rows) {
   // same way — this used to be one sequential request PER client,
   // which for thousands of overlapping phones would take minutes and
   // had the same all-or-nothing fragility as the unbatched insert.
-  // A single batched upsert keyed on `id`, with only `id`+`spins` in
-  // the payload, updates just that column per row via Postgres's
-  // ON CONFLICT DO UPDATE — everything else on the row is untouched.
+  // A single batched upsert keyed on `id` updates every row in one
+  // request via Postgres's ON CONFLICT DO UPDATE.
+  //
+  // IMPORTANT: `clients.name`, `phone`, and `code` are all NOT NULL
+  // with no default. Postgres has to build a complete candidate row
+  // to attempt the INSERT before it can even detect the conflict and
+  // fall through to DO UPDATE — a payload with only {id, spins} fails
+  // that NOT NULL check immediately, for every row in the chunk, even
+  // though every one of them was always going to hit the UPDATE path
+  // (this was silently failing 100% of top-ups; discovered when a
+  // ~1000-row import reported "0/1059 эрх нэмэгдлээ"). Carrying the
+  // existing name/phone/code/user_type through unchanged satisfies
+  // the constraint and is a no-op for those columns — only `spins`
+  // actually changes.
   const existingById = new Map((existingRows || []).map(r => [r.id, r]));
-  const topUpRows = Array.from(topUps.entries()).map(([id, addSpins]) => ({
-    id,
-    spins: (existingById.get(id)?.spins || 0) + addSpins,
-  }));
+  const topUpRows = Array.from(topUps.entries()).map(([id, addSpins]) => {
+    const ex = existingById.get(id);
+    return {
+      id,
+      name:      ex?.name,
+      phone:     ex?.phone,
+      code:      ex?.code,
+      user_type: ex?.user_type,
+      spins:     (ex?.spins || 0) + addSpins,
+    };
+  });
   let toppedUpOk = 0;
   const topUpErrors = [];
   const totalTopUpChunks = Math.ceil(topUpRows.length / CHUNK) || 0;
