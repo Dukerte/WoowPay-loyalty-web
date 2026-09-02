@@ -1035,7 +1035,7 @@ function renderTable() {
     const prize = row.prize;
     const pct  = c.spins > 0 ? Math.min(100, Math.round((c.spins_used / c.spins) * 100)) : 0;
     const date = c.last_spin_at
-      ? new Date(c.last_spin_at).toLocaleDateString('mn-MN')
+      ? formatWonAt(c.last_spin_at)
       : '—';
     const prizeCell = prize
       ? `${esc(prize.label)} <span class="badge ${prize.fulfilled ? 'badge-on' : 'badge-wait'}" style="margin-left:4px">${prize.fulfilled ? 'Олгосон' : 'Хүлээгдэж буй'}</span>`
