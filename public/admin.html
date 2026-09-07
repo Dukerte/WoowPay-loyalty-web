@@ -334,6 +334,7 @@
       <button class="topbar-tab active" id="tab-clients" onclick="switchView('clients')">👥 Харилцагчид</button>
       <button class="topbar-tab" id="tab-prizes" onclick="switchView('prizes')">🎡 Шагнал ба магадлал</button>
       <button class="topbar-tab" id="tab-raffle" onclick="switchView('raffle')">🎟️ Супер сугалаа</button>
+      <button class="topbar-tab" id="tab-survey" onclick="switchView('survey')">📋 Судалгаа</button>
       <button class="topbar-tab" id="tab-booth" onclick="switchView('booth')">📍 Booth mode</button>
     </div>
     <span class="topbar-user" id="topbar-user"></span>
@@ -520,6 +521,55 @@
     </div>
   </div>
 
+  <!-- ══ SURVEY VIEW ══════════════════════════════════════════════ -->
+  <div class="view" id="view-survey">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Нийт хариулт</div>
+        <div class="stat-val" id="sv-total">–</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Дууссан</div>
+        <div class="stat-val" id="sv-completed">–</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Дутуу</div>
+        <div class="stat-val" id="sv-partial">–</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Эрх олгосон</div>
+        <div class="stat-val" id="sv-granted">–</div>
+      </div>
+    </div>
+    <div class="toolbar">
+      <input type="text" class="toolbar-search" id="survey-search-input" placeholder="🔍 Нэр, утас хайх..." oninput="renderSurveyTable()" />
+      <select class="filter-sel" id="survey-status-filter" onchange="renderSurveyTable()">
+        <option value="">Бүгд</option>
+        <option value="completed">Дууссан</option>
+        <option value="partial">Дутуу</option>
+      </select>
+      <button class="btn-sm btn-export" style="margin-left:auto" onclick="exportSurveyFile()">📤 XLSX Татах (бүх асуулт)</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Нэр</th>
+            <th>Утас</th>
+            <th>Нас</th>
+            <th>Статус</th>
+            <th>Код</th>
+            <th>Сүүлд шинэчилсэн</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="survey-table-body">
+          <tr class="empty-row"><td colspan="7">Ачааллаж байна...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- ══ BOOTH MODE VIEW ══════════════════════════════════════════ -->
   <div class="view" id="view-booth">
     <div style="max-width:460px;margin:40px auto;padding:0 24px;">
@@ -631,6 +681,17 @@
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('rewards-modal')">Хаах</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SURVEY DETAIL MODAL ═══════════════════════════════════════ -->
+<div class="modal-overlay" id="survey-detail-modal" onclick="closeOnBg(event, 'survey-detail-modal')">
+  <div class="modal" style="max-width:640px;max-height:80vh;overflow-y:auto;">
+    <div class="modal-title" id="survey-detail-title">Судалгааны хариулт</div>
+    <div id="survey-detail-body" style="display:grid;gap:14px;"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('survey-detail-modal')">Хаах</button>
     </div>
   </div>
 </div>
@@ -773,17 +834,21 @@ function showApp(email) {
 
 let prizesLoaded = false;
 let raffleLoaded = false;
+let surveyLoaded = false;
 function switchView(view) {
   document.getElementById('view-clients').classList.toggle('active', view === 'clients');
   document.getElementById('view-prizes').classList.toggle('active', view === 'prizes');
   document.getElementById('view-raffle').classList.toggle('active', view === 'raffle');
+  document.getElementById('view-survey').classList.toggle('active', view === 'survey');
   document.getElementById('view-booth').classList.toggle('active', view === 'booth');
   document.getElementById('tab-clients').classList.toggle('active', view === 'clients');
   document.getElementById('tab-prizes').classList.toggle('active', view === 'prizes');
   document.getElementById('tab-raffle').classList.toggle('active', view === 'raffle');
+  document.getElementById('tab-survey').classList.toggle('active', view === 'survey');
   document.getElementById('tab-booth').classList.toggle('active', view === 'booth');
   if (view === 'prizes' && !prizesLoaded) { prizesLoaded = true; loadPrizes(); }
   if (view === 'raffle' && !raffleLoaded) { raffleLoaded = true; loadRaffleEntries(); }
+  if (view === 'survey' && !surveyLoaded) { surveyLoaded = true; loadSurveyResponses(); }
   if (view === 'booth') {
     const info = document.getElementById('booth-client-info');
     const result = document.getElementById('booth-result');
@@ -1546,6 +1611,182 @@ function exportRaffleFile() {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = `super-sugalaa-${stamp}.csv`;
+    a.click();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SURVEY (Судалгаа) — responses from survey.woowpay.mn's
+//  submit_survey_progress RPC, stored in survey_responses. Column
+//  labels and the brand list below must be kept in sync with
+//  src/survey/data.ts (BRANDS + question ids) — this is a separate
+//  static file so it can't import that module directly.
+// ══════════════════════════════════════════════════════════════
+let surveyResponses = [];
+
+const SURVEY_BRANDS = ['LendMN', 'WooW Pay', 'Pocket', 'Numur', 'Sono', 'Netpay', 'Zeely'];
+
+const SURVEY_QUESTION_LABELS = {
+  q1: 'Одоогийн үндсэн статус',
+  q2: 'Сарын дундаж орлого',
+  q3: 'Сүүлийн 3 сард гэнэтийн зардал гарсан уу',
+  q3a: 'Гэнэтийн зардлын төрөл',
+  q4: 'Зардлаа зохицуулах арга',
+  q5: '100,000–300,000₮-ийг өөрөө шийдэх боломж',
+  q6: 'Санаанд орох брэндүүд (нээлттэй асуулт)',
+  q8: '6 сарын хугацаанд хэдэн удаа ашигласан',
+  q8a: 'Сүүлд ашигласан дүн',
+  q8b: 'Төлөх хугацаа',
+  q8c: 'Ашигласан зорилго',
+  q8d: 'Апп сонгох гол шалгуур (2)',
+  q8n: 'Ашигладаггүй гол шалтгаан',
+  q9_used_reason: 'WooW Pay ашиглах болсон шалтгаан',
+  q9_used_3words: 'WooW Pay-г 3 үгээр',
+  q9_used_recommend: 'WooW Pay санал болгох магадлал (1–6)',
+  q9_known_notused_why: 'Мэддэг ч ашиглаж үзээгүй шалтгаан',
+  q9_known_notused_driver: 'Анх ашиглахад юу нөлөөлөх',
+  q9_unknown_trust: 'Шинэ аппд итгэхэд юу чухал',
+  q10: 'Мэдээллийн суваг (3 хүртэл)',
+  q11: 'Нөлөөтэй мэдээллийн төрөл (3 хүртэл)',
+  q12: 'Санал хүсэлт',
+};
+
+function surveyAnswerText(val) {
+  if (val == null) return '';
+  if (Array.isArray(val)) return val.join('; ');
+  if (typeof val === 'object') return ''; // matrix (q7) — handled separately
+  return String(val);
+}
+
+async function loadSurveyResponses() {
+  const tbody = document.getElementById('survey-table-body');
+  tbody.innerHTML = `<tr class="empty-row"><td colspan="7">Ачааллаж байна...</td></tr>`;
+
+  const { data, error } = await fetchAllRows(
+    'survey_responses',
+    'id, phone, name, age, answers, completed, completed_at, spins_granted, updated_at, clients(code)',
+    q => q.order('updated_at', { ascending: false })
+  );
+
+  if (error) { tbody.innerHTML = `<tr class="empty-row"><td colspan="7">Алдаа гарлаа</td></tr>`; return; }
+
+  surveyResponses = data || [];
+
+  document.getElementById('sv-total').textContent = surveyResponses.length;
+  document.getElementById('sv-completed').textContent = surveyResponses.filter(r => r.completed).length;
+  document.getElementById('sv-partial').textContent = surveyResponses.filter(r => !r.completed).length;
+  document.getElementById('sv-granted').textContent = surveyResponses.filter(r => r.spins_granted).length;
+
+  renderSurveyTable();
+}
+
+function renderSurveyTable() {
+  const tbody = document.getElementById('survey-table-body');
+  const q = (document.getElementById('survey-search-input').value || '').toLowerCase();
+  const status = document.getElementById('survey-status-filter').value;
+
+  const rows = surveyResponses.filter(r => {
+    const matchQ = !q || (r.name||'').toLowerCase().includes(q) || (r.phone||'').includes(q);
+    const matchStatus = !status || (status === 'completed' ? r.completed : !r.completed);
+    return matchQ && matchStatus;
+  });
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="7">Илэрц олдсонгүй</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td>${esc(r.name)}</td>
+      <td>${esc(r.phone)}</td>
+      <td>${esc(String(r.age ?? '—'))}</td>
+      <td><span class="badge ${r.completed ? 'badge-on' : 'badge-wait'}">${r.completed ? 'Дууссан' : 'Дутуу'}</span></td>
+      <td>${r.clients && r.clients.code ? `<code style="font-size:.8rem;color:var(--cyan)">${esc(r.clients.code)}</code>` : '—'}</td>
+      <td style="font-size:.78rem;color:var(--muted)">${r.updated_at ? formatWonAt(r.updated_at) : '—'}</td>
+      <td><button class="btn-icon" title="Дэлгэрэнгүй" onclick="openSurveyDetail('${r.id}')">👁️</button></td>
+    </tr>`).join('');
+}
+
+function openSurveyDetail(id) {
+  const r = surveyResponses.find(x => x.id === id);
+  if (!r) return;
+  document.getElementById('survey-detail-title').textContent = `${r.name} — ${r.phone}`;
+
+  const answers = r.answers || {};
+  const body = document.getElementById('survey-detail-body');
+  let html = '';
+
+  Object.keys(SURVEY_QUESTION_LABELS).forEach(qid => {
+    if (!(qid in answers)) return;
+    const text = surveyAnswerText(answers[qid]);
+    if (!text) return;
+    html += `<div><div style="font-size:.75rem;color:var(--muted);margin-bottom:2px">${esc(SURVEY_QUESTION_LABELS[qid])}</div><div>${esc(text)}</div></div>`;
+  });
+
+  if (answers.q7 && answers.q7.rows) {
+    const brandLines = SURVEY_BRANDS.concat(answers.q7.otherLabel ? [answers.q7.otherLabel] : [])
+      .map(brand => {
+        const cell = answers.q7.rows[brand] || answers.q7.rows['__other__'];
+        if (!cell) return null;
+        const cols = [];
+        if (cell.know) cols.push('Мэддэг');
+        if (cell.used) cols.push('Өмнө ашиглаж байсан');
+        if (cell.current) cols.push('Одоо ашигладаг');
+        if (!cols.length) return null;
+        return `${brand}: ${cols.join(', ')}`;
+      }).filter(Boolean);
+    if (brandLines.length) {
+      html += `<div><div style="font-size:.75rem;color:var(--muted);margin-bottom:2px">Мэддэг/ашигласан брэндүүд</div><div>${brandLines.map(esc).join('<br/>')}</div></div>`;
+    }
+  }
+
+  body.innerHTML = html || '<div style="color:var(--muted)">Хариулт бүртгэгдээгүй байна.</div>';
+  document.getElementById('survey-detail-modal').classList.add('open');
+}
+
+function exportSurveyFile() {
+  const q = (document.getElementById('survey-search-input').value || '').toLowerCase();
+  const status = document.getElementById('survey-status-filter').value;
+  const visible = surveyResponses.filter(r => {
+    const matchQ = !q || (r.name||'').toLowerCase().includes(q) || (r.phone||'').includes(q);
+    const matchStatus = !status || (status === 'completed' ? r.completed : !r.completed);
+    return matchQ && matchStatus;
+  });
+
+  const brandCols = SURVEY_BRANDS.flatMap(b => [`${b} - Мэддэг`, `${b} - Өмнө ашиглаж байсан`, `${b} - Одоо ашигладаг`]);
+  const qCols = Object.keys(SURVEY_QUESTION_LABELS);
+  const headers = ['Нэр', 'Утас', 'Нас', 'Статус', 'Код', 'Сүүлд шинэчилсэн', ...qCols.map(id => SURVEY_QUESTION_LABELS[id]), 'Бусад брэнд', ...brandCols];
+
+  const rows = [headers, ...visible.map(r => {
+    const answers = r.answers || {};
+    const qVals = qCols.map(id => surveyAnswerText(answers[id]));
+    const q7 = answers.q7 || { rows: {} };
+    const brandVals = SURVEY_BRANDS.flatMap(b => {
+      const cell = q7.rows[b] || {};
+      return [cell.know ? '1' : '', cell.used ? '1' : '', cell.current ? '1' : ''];
+    });
+    return [
+      r.name, r.phone, r.age ?? '', r.completed ? 'Дууссан' : 'Дутуу',
+      (r.clients && r.clients.code) || '', r.updated_at ? new Date(r.updated_at).toLocaleString('mn-MN') : '',
+      ...qVals, q7.otherLabel || '', ...brandVals,
+    ];
+  })];
+
+  const stamp = new Date().toISOString().slice(0,10);
+
+  if (window.XLSX) {
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = headers.map(() => ({ wch: 20 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Судалгаа');
+    XLSX.writeFile(wb, `sudalgaa-${stamp}.xlsx`);
+  } else {
+    const csv = rows.map(row => row.map(v => `"${String(v ?? '').replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `sudalgaa-${stamp}.csv`;
     a.click();
   }
 }

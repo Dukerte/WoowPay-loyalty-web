@@ -78,16 +78,25 @@ export function IntroScreen(onSubmit: (profile: SurveyProfile) => void): HTMLEle
   return el;
 }
 
-export function FinishScreen(opts?: { alreadyClaimed?: boolean }): HTMLElement {
+const SITE_URL = 'https://loyalty.woowpay.mn';
+
+export function FinishScreen(opts?: { alreadyClaimed?: boolean; clientCode?: string | null; clientToken?: string | null }): HTMLElement {
   const el = document.createElement('div');
   el.className = 'sv-screen sv-finish';
   // A phone that already claimed the reward on an earlier attempt
-  // still gets the full "thank you" — just not the reward line
-  // again, since re-promising spins that won't actually be added
-  // would be misleading.
+  // still gets the full "thank you" — just not a claim of a NEW
+  // reward, since re-promising spins that won't actually be added
+  // would be misleading. Its existing code/link still shows below,
+  // since finding your way back to the wheel is still useful.
   const rewardLine = opts?.alreadyClaimed
     ? 'Та энэ судалгааны урамшууллыг өмнө нь аль хэдийн авсан байна. Дахин баярлалаа!'
     : FINISH_COPY.reward;
+
+  const hasSpinLink = !!(opts?.clientCode && opts?.clientToken);
+  const spinUrl = hasSpinLink
+    ? `${SITE_URL}/?code=${encodeURIComponent(opts!.clientCode!)}&t=${encodeURIComponent(opts!.clientToken!)}`
+    : null;
+
   el.innerHTML = `
     <div class="sv-card sv-finish-card">
       <div class="sv-finish-check">✓</div>
@@ -95,6 +104,14 @@ export function FinishScreen(opts?: { alreadyClaimed?: boolean }): HTMLElement {
       <h2 class="sv-title">${esc(FINISH_COPY.title)}</h2>
       <p class="sv-lead">${esc(FINISH_COPY.lead)}</p>
       <div class="sv-reward">${esc(rewardLine)}</div>
+      ${hasSpinLink ? `
+        <div class="sv-code-box">
+          <span class="sv-code-label">Таны код</span>
+          <span class="sv-code-value">${esc(opts!.clientCode!)}</span>
+        </div>
+        <a class="sv-btn sv-btn-primary sv-btn-block" href="${spinUrl}">🎡 Хүрдээ эргүүлэх →</a>
+        <p class="sv-code-note">Энэ холбоос 3 хоногийн дотор хүчинтэй. Дараа нь код-оороо шууд орж болно.</p>
+      ` : ''}
     </div>
   `;
   return el;

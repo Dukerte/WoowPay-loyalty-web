@@ -18,6 +18,7 @@ export interface SubmitResult {
   ok: boolean;
   alreadyClaimed?: boolean;
   clientCode?: string | null;
+  clientToken?: string | null;
   error?: string;
 }
 
@@ -25,6 +26,7 @@ interface RpcResponse {
   ok: boolean;
   already_claimed?: boolean;
   client_code?: string | null;
+  client_token?: string | null;
   error?: string;
 }
 
@@ -46,6 +48,7 @@ async function callRpc(
       ok:           res.ok,
       alreadyClaimed: res.already_claimed,
       clientCode:   res.client_code ?? null,
+      clientToken:  res.client_token ?? null,
       error:        res.error,
     };
   } catch {

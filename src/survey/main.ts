@@ -66,12 +66,16 @@ function goForward(currentId: string) {
 async function showFinish() {
   const state = getSurveyState();
   let alreadyClaimed = false;
+  let clientCode: string | null = null;
+  let clientToken: string | null = null;
   if (state.profile) {
     const result = await submitSurvey(state.profile, state);
     alreadyClaimed = !!result.alreadyClaimed;
+    clientCode = result.clientCode ?? null;
+    clientToken = result.clientToken ?? null;
   }
   app.innerHTML = '';
-  app.appendChild(FinishScreen({ alreadyClaimed }));
+  app.appendChild(FinishScreen({ alreadyClaimed, clientCode, clientToken }));
 }
 
 showIntro();
