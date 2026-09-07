@@ -1,19 +1,28 @@
-import type { AnswerValue, SurveyProfile, SurveyState } from './types';
+import type { AnswerValue, ContactInfo, SurveyState } from './types';
 
-const DEFAULT_STATE: SurveyState = {
-  profile: null,
-  answers: {},
-  path: [],
-};
+function newSessionId(): string {
+  // crypto.randomUUID() needs a secure context (https, or localhost)
+  // — true everywhere this ships, but fall back just in case.
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
-let state: SurveyState = { ...DEFAULT_STATE, answers: {}, path: [] };
+function freshState(): SurveyState {
+  return { sessionId: newSessionId(), age: null, contact: null, answers: {} };
+}
+
+let state: SurveyState = freshState();
 
 export function getSurveyState(): Readonly<SurveyState> {
   return state;
 }
 
-export function setProfile(profile: SurveyProfile): void {
-  state = { ...state, profile };
+export function setAge(age: number): void {
+  state = { ...state, age };
+}
+
+export function setContact(contact: ContactInfo): void {
+  state = { ...state, contact };
 }
 
 export function setAnswer(id: string, value: AnswerValue): void {
@@ -24,10 +33,6 @@ export function getAnswer(id: string): AnswerValue {
   return state.answers[id];
 }
 
-export function setPath(path: string[]): void {
-  state = { ...state, path };
-}
-
 export function resetSurveyState(): void {
-  state = { profile: null, answers: {}, path: [] };
+  state = freshState();
 }

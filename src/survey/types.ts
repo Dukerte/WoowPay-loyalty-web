@@ -63,14 +63,20 @@ export interface MatrixAnswer {
 
 export type AnswerValue = string | string[] | number | MatrixAnswer | undefined;
 
-export interface SurveyProfile {
+// Age is collected on the intro screen (it gates entry, 18+); phone
+// and name are collected on the LAST screen, right before the reward
+// is granted — so a person only has to hand over contact details once
+// they've seen the whole thing is worth it. `sessionId` exists so
+// partial answers can be saved to the DB before we have a phone
+// number to key on (see engine.ts / surveyService.ts).
+export interface ContactInfo {
   phone: string;
   name: string;
-  age: number;
 }
 
 export interface SurveyState {
-  profile: SurveyProfile | null;
+  sessionId: string;
+  age: number | null;
+  contact: ContactInfo | null;
   answers: Record<string, AnswerValue>;
-  path: string[];   // ordered ids of questions actually shown, for progress display
 }

@@ -1,18 +1,18 @@
 // ══════════════════════════════════════════════════════════════
-//  Calls the submit_survey_progress SECURITY DEFINER RPC (see
-//  supabase-schema.sql / the survey_responses_and_submit_rpc
-//  migration). Two call sites in main.ts:
+//  Calls the submit_survey_progress SECURITY DEFINER RPC (see the
+//  survey_defer_contact_to_end migration). Two call sites in
+//  main.ts:
 //
 //   - saveProgress(..., completed=false) after every answer — fires
-//     and forgets, so an abandoned survey still has its partial
-//     answers on record for research value.
-//   - submitSurvey(...) at the very end (completed=true) — this is
-//     the one call that actually grants the +2 spins, exactly once
-//     ever per phone. The RPC itself enforces that; the frontend
-//     just reports whatever it says back.
+//     and forgets, keyed by sessionId (not phone — we don't have one
+//     yet, since contact info now lives on the last screen). An
+//     abandoned survey still has its partial answers on record.
+//   - submitSurvey(...) on the final contact screen (completed=true,
+//     phone+name included) — this is the one call that actually
+//     grants the +2 spins, exactly once ever per phone.
 // ══════════════════════════════════════════════════════════════
 import { rpcCall } from '../lib/supabase';
-import type { AnswerValue, SurveyProfile, SurveyState } from './types';
+import type { AnswerValue, ContactInfo } from './types';
 
 export interface SubmitResult {
   ok: boolean;
@@ -30,40 +30,51 @@ interface RpcResponse {
   error?: string;
 }
 
-async function callRpc(
-  profile: SurveyProfile,
-  answers: Record<string, AnswerValue>,
-  completed: boolean
-): Promise<SubmitResult> {
-  try {
-    const res = await rpcCall<RpcResponse>('submit_survey_progress', {
-      p_phone:     profile.phone,
-      p_name:      profile.name,
-      p_age:       profile.age,
-      p_answers:   answers,
-      p_completed: completed,
-    });
-    if (!res) return { ok: false, error: 'network' };
-    return {
-      ok:           res.ok,
-      alreadyClaimed: res.already_claimed,
-      clientCode:   res.client_code ?? null,
-      clientToken:  res.client_token ?? null,
-      error:        res.error,
-    };
-  } catch {
-    return { ok: false, error: 'network' };
-  }
+function toResult(res: RpcResponse | null): SubmitResult {
+  if (!res) return { ok: false, error: 'network' };
+  return {
+    ok:             res.ok,
+    alreadyClaimed: res.already_claimed,
+    clientCode:     res.client_code ?? null,
+    clientToken:    res.client_token ?? null,
+    error:          res.error,
+  };
 }
 
 /** Fire-and-forget partial save — never blocks navigation, never
  * surfaces an error to the person filling out the survey. */
-export function saveProgress(profile: SurveyProfile | null, answers: Record<string, AnswerValue>): void {
-  if (!profile) return;
-  void callRpc(profile, answers, false);
+export function saveProgress(
+  sessionId: string,
+  age: number | null,
+  answers: Record<string, AnswerValue>
+): void {
+  if (age === null) return; // nothing to save before the intro is submitted
+  void rpcCall<RpcResponse>('submit_survey_progress', {
+    p_session_id: sessionId,
+    p_age:        age,
+    p_answers:    answers,
+    p_completed:  false,
+  }).catch(() => null);
 }
 
 /** The final, completion call — this is the one that grants spins. */
-export async function submitSurvey(profile: SurveyProfile, state: SurveyState): Promise<SubmitResult> {
-  return callRpc(profile, state.answers, true);
+export async function submitSurvey(
+  sessionId: string,
+  age: number,
+  answers: Record<string, AnswerValue>,
+  contact: ContactInfo
+): Promise<SubmitResult> {
+  try {
+    const res = await rpcCall<RpcResponse>('submit_survey_progress', {
+      p_session_id: sessionId,
+      p_age:        age,
+      p_answers:    answers,
+      p_completed:  true,
+      p_phone:      contact.phone,
+      p_name:       contact.name,
+    });
+    return toResult(res);
+  } catch {
+    return { ok: false, error: 'network' };
+  }
 }

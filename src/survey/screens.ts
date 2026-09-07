@@ -1,12 +1,10 @@
 // ══════════════════════════════════════════════════════════════
-//  The two one-off screens that aren't part of the question list:
-//  the intro (phone/name/age capture + 18+ gate) and the finish
-//  screen. Kept separate from render.ts since neither is a
-//  `Question` — they don't repeat and don't need the generic
-//  single/multi/text/matrix/scale machinery.
+//  The three one-off screens that aren't part of the branching
+//  question list: intro (age gate only), contact (phone+name,
+//  shown last, right before the reward), and finish.
 // ══════════════════════════════════════════════════════════════
-import type { SurveyProfile } from './types';
-import { INTRO_COPY, FINISH_COPY, UNDER_AGE_MESSAGE } from './data';
+import type { ContactInfo } from './types';
+import { INTRO_COPY, CONTACT_COPY, FINISH_COPY, UNDER_AGE_MESSAGE } from './data';
 
 function esc(s: string): string {
   const d = document.createElement('div');
@@ -14,31 +12,24 @@ function esc(s: string): string {
   return d.innerHTML;
 }
 
-export function IntroScreen(onSubmit: (profile: SurveyProfile) => void): HTMLElement {
+export function IntroScreen(onSubmit: (age: number) => void, prefillAge?: number | null): HTMLElement {
   const el = document.createElement('div');
   el.className = 'sv-screen sv-intro';
 
   el.innerHTML = `
     <div class="sv-card">
+      <img src="/event-title.webp" class="sv-hero-title" alt="Урамшууллын хүрд" />
       <div class="sv-kicker">${esc(INTRO_COPY.kicker)}</div>
       <h1 class="sv-intro-title">${INTRO_COPY.title}</h1>
-      <p class="sv-lead">${esc(INTRO_COPY.lead)}</p>
+
+      <img src="/owl-pointing.webp" class="sv-hero-owl" alt="" aria-hidden="true" />
 
       <form id="sv-intro-form" novalidate>
         <div class="sv-field">
-          <label for="sv-phone">${esc(INTRO_COPY.phoneLabel)}</label>
-          <input id="sv-phone" class="sv-input" type="tel" inputmode="tel" maxlength="8" placeholder="Жишээ: 99112233" autocomplete="tel" required />
-        </div>
-        <div class="sv-field">
-          <label for="sv-name">${esc(INTRO_COPY.nameLabel)}</label>
-          <input id="sv-name" class="sv-input" type="text" placeholder="Нэрээ оруулна уу" autocomplete="name" required />
-        </div>
-        <div class="sv-field">
           <label for="sv-age">${esc(INTRO_COPY.ageLabel)}</label>
-          <input id="sv-age" class="sv-input" type="number" inputmode="numeric" min="1" max="100" step="1" placeholder="Насаа тоогоор оруулна уу" required />
+          <input id="sv-age" class="sv-input" type="number" inputmode="numeric" min="1" max="100" step="1" placeholder="Насаа тоогоор оруулна уу" value="${prefillAge ? esc(String(prefillAge)) : ''}" required autofocus />
           <small class="sv-field-note">${esc(INTRO_COPY.ageNote)}</small>
         </div>
-        <div class="sv-privacy">${esc(INTRO_COPY.privacy)}</div>
         <div class="sv-err" id="sv-intro-err"></div>
         <button type="submit" class="sv-btn sv-btn-primary sv-btn-block">${esc(INTRO_COPY.submitLabel)} →</button>
       </form>
@@ -46,15 +37,10 @@ export function IntroScreen(onSubmit: (profile: SurveyProfile) => void): HTMLEle
     </div>
   `;
 
-  const form    = el.querySelector<HTMLFormElement>('#sv-intro-form')!;
-  const phoneEl = el.querySelector<HTMLInputElement>('#sv-phone')!;
-  const nameEl  = el.querySelector<HTMLInputElement>('#sv-name')!;
-  const ageEl   = el.querySelector<HTMLInputElement>('#sv-age')!;
-  const errEl   = el.querySelector<HTMLDivElement>('#sv-intro-err')!;
+  const form  = el.querySelector<HTMLFormElement>('#sv-intro-form')!;
+  const ageEl = el.querySelector<HTMLInputElement>('#sv-age')!;
+  const errEl = el.querySelector<HTMLDivElement>('#sv-intro-err')!;
 
-  phoneEl.addEventListener('input', () => {
-    phoneEl.value = phoneEl.value.replace(/\D/g, '').slice(0, 8);
-  });
   ageEl.addEventListener('input', () => {
     ageEl.value = ageEl.value.replace(/\D/g, '').slice(0, 3);
   });
@@ -63,16 +49,77 @@ export function IntroScreen(onSubmit: (profile: SurveyProfile) => void): HTMLEle
     e.preventDefault();
     errEl.textContent = '';
 
-    const phone = phoneEl.value.trim();
-    const name = nameEl.value.trim();
     const age = parseInt(ageEl.value, 10);
-
-    if (phone.length !== 8) { errEl.textContent = 'Утасны дугаар 8 оронтой байх ёстой.'; return; }
-    if (!name) { errEl.textContent = 'Нэрээ оруулна уу.'; return; }
     if (!age || age < 1 || age > 100) { errEl.textContent = 'Насаа зөв оруулна уу.'; return; }
     if (age < 18) { errEl.textContent = UNDER_AGE_MESSAGE; return; }
 
-    onSubmit({ phone, name, age });
+    onSubmit(age);
+  });
+
+  return el;
+}
+
+export function ContactScreen(
+  stepIndex: number,
+  stepTotal: number,
+  onSubmit: (contact: ContactInfo) => void,
+  onBack: () => void
+): HTMLElement {
+  const el = document.createElement('div');
+  el.className = 'sv-screen';
+
+  const pct = stepTotal > 0 ? Math.round(((stepIndex + 1) / stepTotal) * 100) : 100;
+
+  el.innerHTML = `
+    <div class="sv-progress"><div class="sv-progress-bar" style="width:${pct}%"></div></div>
+    <div class="sv-card">
+      <img src="/owl-pointing.webp" class="sv-hero-owl sv-hero-owl-small" alt="" aria-hidden="true" />
+      <div class="sv-kicker">${esc(CONTACT_COPY.kicker)}</div>
+      <h2 class="sv-title">${esc(CONTACT_COPY.title)}</h2>
+      <p class="sv-lead">${esc(CONTACT_COPY.lead)}</p>
+
+      <form id="sv-contact-form" novalidate>
+        <div class="sv-field">
+          <label for="sv-phone">${esc(CONTACT_COPY.phoneLabel)}</label>
+          <input id="sv-phone" class="sv-input" type="tel" inputmode="tel" maxlength="8" placeholder="Жишээ: 99112233" autocomplete="tel" required />
+        </div>
+        <div class="sv-field">
+          <label for="sv-name">${esc(CONTACT_COPY.nameLabel)}</label>
+          <input id="sv-name" class="sv-input" type="text" placeholder="Нэрээ оруулна уу" autocomplete="name" required />
+        </div>
+        <div class="sv-privacy">${esc(CONTACT_COPY.privacy)}</div>
+        <div class="sv-err" id="sv-contact-err"></div>
+        <div class="sv-controls">
+          <button type="button" class="sv-btn sv-btn-secondary" id="sv-contact-back">← Буцах</button>
+          <button type="submit" class="sv-btn sv-btn-primary">${esc(CONTACT_COPY.submitLabel)} →</button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  const form    = el.querySelector<HTMLFormElement>('#sv-contact-form')!;
+  const phoneEl = el.querySelector<HTMLInputElement>('#sv-phone')!;
+  const nameEl  = el.querySelector<HTMLInputElement>('#sv-name')!;
+  const errEl   = el.querySelector<HTMLDivElement>('#sv-contact-err')!;
+  const backBtn = el.querySelector<HTMLButtonElement>('#sv-contact-back')!;
+
+  phoneEl.addEventListener('input', () => {
+    phoneEl.value = phoneEl.value.replace(/\D/g, '').slice(0, 8);
+  });
+
+  backBtn.addEventListener('click', onBack);
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    errEl.textContent = '';
+
+    const phone = phoneEl.value.trim();
+    const name = nameEl.value.trim();
+
+    if (phone.length !== 8) { errEl.textContent = 'Утасны дугаар 8 оронтой байх ёстой.'; return; }
+    if (!name) { errEl.textContent = 'Нэрээ оруулна уу.'; return; }
+
+    onSubmit({ phone, name });
   });
 
   return el;
