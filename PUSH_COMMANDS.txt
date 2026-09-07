@@ -1,0 +1,27 @@
+cd "/Users/duke/Desktop/Claude/Woow/WoowPayLoyalty"
+rm -f .git/index.lock
+git add src/survey/data.ts src/survey/engine.ts src/survey/main.ts src/survey/screens.ts src/survey/state.ts src/survey/survey.css src/survey/types.ts src/survey/bandsData.ts src/survey/midBand.ts public/admin.html
+rm -f src/survey/__verify_branching.ts
+git commit -m "Add age-band branching to survey; fix admin export for all 4 bands
+
+- Original draft has 4 fully separate question sets per age band,
+  not just one generic flow. Age typed on intro now selects the
+  band (data.ts getBandId) and locks it for the session.
+- 23-29/30-39/40-plus share identical branching mechanics, built
+  via a shared factory (midBand.ts) with real per-band copy
+  (bandsData.ts) ported from the decoded original draft.
+- Fixed a mismatch in the 18-22 band's WooW Pay experience
+  questions found while cross-checking against the original:
+  multi-select (not single) with a missing 'Бусад' option, and
+  NPS scale was 0-10 not 1-6.
+- Every saved answer set now carries a _segment label so admin
+  tooling can tell which band produced it.
+- Age helper text moved into the input placeholder; intro hero
+  redesigned to a single centered column instead of a cramped
+  2-column layout; title line breaks cleaned up.
+- admin.html Судалгаа tab/export previously only knew the 18-22
+  band's question ids, so responses from the other 3 bands
+  exported blank. Now uses a merged label map across all 4 bands,
+  finds the brand-awareness matrix generically per band, and
+  shows/exports the age-band segment as its own column."
+git push

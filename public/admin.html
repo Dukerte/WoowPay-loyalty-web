@@ -557,6 +557,7 @@
             <th>Нэр</th>
             <th>Утас</th>
             <th>Нас</th>
+            <th>Ангилал</th>
             <th>Статус</th>
             <th>Код</th>
             <th>Сүүлд шинэчилсэн</th>
@@ -564,7 +565,7 @@
           </tr>
         </thead>
         <tbody id="survey-table-body">
-          <tr class="empty-row"><td colspan="7">Ачааллаж байна...</td></tr>
+          <tr class="empty-row"><td colspan="8">Ачааллаж байна...</td></tr>
         </tbody>
       </table>
     </div>
@@ -1626,7 +1627,8 @@ let surveyResponses = [];
 
 const SURVEY_BRANDS = ['LendMN', 'WooW Pay', 'Pocket', 'Numur', 'Sono', 'Netpay', 'Zeely'];
 
-const SURVEY_QUESTION_LABELS = {
+// 18–22 band (unprefixed ids — matches src/survey/data.ts).
+const SURVEY_LABELS_1822 = {
   q1: 'Одоогийн үндсэн статус',
   q2: 'Сарын дундаж орлого',
   q3: 'Сүүлийн 3 сард гэнэтийн зардал гарсан уу',
@@ -1642,7 +1644,7 @@ const SURVEY_QUESTION_LABELS = {
   q8n: 'Ашигладаггүй гол шалтгаан',
   q9_used_reason: 'WooW Pay ашиглах болсон шалтгаан',
   q9_used_3words: 'WooW Pay-г 3 үгээр',
-  q9_used_recommend: 'WooW Pay санал болгох магадлал (1–6)',
+  q9_used_recommend: 'WooW Pay санал болгох магадлал (0–10)',
   q9_known_notused_why: 'Мэддэг ч ашиглаж үзээгүй шалтгаан',
   q9_known_notused_driver: 'Анх ашиглахад юу нөлөөлөх',
   q9_unknown_trust: 'Шинэ аппд итгэхэд юу чухал',
@@ -1651,16 +1653,72 @@ const SURVEY_QUESTION_LABELS = {
   q12: 'Санал хүсэлт',
 };
 
+// 23-29 / 30-39 / 40+ bands share identical question ids/mechanics
+// (src/survey/midBand.ts) — only the wording differs per band, which
+// doesn't matter for these short admin column labels.
+const MID_BAND_LABELS = {
+  q1: 'Ажил эрхлэлт / зардлын дараалал',
+  q2: 'Сарын орлого',
+  q3: 'Сарын төсвийн ачаалал / итгэлийн хүчин зүйл',
+  q4: 'Гэнэтийн зардлын нөөц байгаа эсэх',
+  q5: 'Сүүлийн 3 сард гэнэтийн зардал гарсан уу',
+  q5a: 'Гэнэтийн зардлын төрөл',
+  q6: 'Зардлаа хэрхэн зохицуулдаг',
+  q7: '6 сарын хугацаанд хэдэн удаа ашигласан',
+  q7_amount: 'Сүүлд ашигласан дүн',
+  q7_term: 'Төлөх хугацаа',
+  q7_trigger: 'Ашигласан шалтгаан',
+  q7_nonuse: 'Ашигладаггүй шалтгаан',
+  q8_purpose: 'Ямар хэрэгцээнд ашигладаг',
+  q8_choice: 'Сонгох гол шалгуур',
+  q8_nonuse: 'Ашиглахад нөлөөлөх хүчин зүйл',
+  q9_unaided: 'Санаанд орох брэндүүд (нээлттэй)',
+  q9_matrix: 'Брэнд мэдлэг/ашиглалт',
+  q10_reason: 'WooW Pay ашиглах болсон шалтгаан',
+  q10_words: 'WooW Pay-г 3 үгээр',
+  q10_nps: 'WooW Pay санал болгох магадлал (0–10)',
+  q10_known: 'Мэддэг ч ашиглаж үзээгүй шалтгаан',
+  q10_trial: 'Анх ашиглахад юу нөлөөлөх',
+  q10_unaware: 'Шинэ аппд итгэхэд юу чухал',
+  q11: 'Мэдээллийн суваг (3 хүртэл)',
+  q12a: 'Нөлөөтэй мэдээллийн төрөл (3 хүртэл)',
+  q12b: 'Санал хүсэлт',
+};
+
+const MID_BAND_PREFIXES = ['b2329', 'b3039', 'b40plus'];
+
+// One merged map covering all 4 age bands — ids are prefixed per
+// band (see src/survey/midBand.ts) so they never collide, which
+// means a single flat column list works for every response
+// regardless of which band answered it.
+const SURVEY_QUESTION_LABELS = Object.assign(
+  {},
+  SURVEY_LABELS_1822,
+  ...MID_BAND_PREFIXES.map(p => Object.fromEntries(
+    Object.entries(MID_BAND_LABELS).map(([k, v]) => [`${p}_${k}`, v])
+  ))
+);
+
+// Brand-awareness matrix lives under a different key per band.
+const SURVEY_MATRIX_KEYS = ['q7', ...MID_BAND_PREFIXES.map(p => `${p}_q9_matrix`)];
+
+function findSurveyMatrix(answers) {
+  for (const key of SURVEY_MATRIX_KEYS) {
+    if (answers[key] && answers[key].rows) return answers[key];
+  }
+  return null;
+}
+
 function surveyAnswerText(val) {
   if (val == null) return '';
   if (Array.isArray(val)) return val.join('; ');
-  if (typeof val === 'object') return ''; // matrix (q7) — handled separately
+  if (typeof val === 'object') return ''; // matrix — handled separately
   return String(val);
 }
 
 async function loadSurveyResponses() {
   const tbody = document.getElementById('survey-table-body');
-  tbody.innerHTML = `<tr class="empty-row"><td colspan="7">Ачааллаж байна...</td></tr>`;
+  tbody.innerHTML = `<tr class="empty-row"><td colspan="8">Ачааллаж байна...</td></tr>`;
 
   const { data, error } = await fetchAllRows(
     'survey_responses',
@@ -1668,7 +1726,7 @@ async function loadSurveyResponses() {
     q => q.order('updated_at', { ascending: false })
   );
 
-  if (error) { tbody.innerHTML = `<tr class="empty-row"><td colspan="7">Алдаа гарлаа</td></tr>`; return; }
+  if (error) { tbody.innerHTML = `<tr class="empty-row"><td colspan="8">Алдаа гарлаа</td></tr>`; return; }
 
   surveyResponses = data || [];
 
@@ -1692,7 +1750,7 @@ function renderSurveyTable() {
   });
 
   if (!rows.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="7">Илэрц олдсонгүй</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">Илэрц олдсонгүй</td></tr>`;
     return;
   }
 
@@ -1701,6 +1759,7 @@ function renderSurveyTable() {
       <td>${esc(r.name)}</td>
       <td>${esc(r.phone)}</td>
       <td>${esc(String(r.age ?? '—'))}</td>
+      <td style="font-size:.78rem;color:var(--muted)">${esc((r.answers && r.answers._segment) || '—')}</td>
       <td><span class="badge ${r.completed ? 'badge-on' : 'badge-wait'}">${r.completed ? 'Дууссан' : 'Дутуу'}</span></td>
       <td>${r.clients && r.clients.code ? `<code style="font-size:.8rem;color:var(--cyan)">${esc(r.clients.code)}</code>` : '—'}</td>
       <td style="font-size:.78rem;color:var(--muted)">${r.updated_at ? formatWonAt(r.updated_at) : '—'}</td>
@@ -1717,6 +1776,10 @@ function openSurveyDetail(id) {
   const body = document.getElementById('survey-detail-body');
   let html = '';
 
+  if (answers._segment) {
+    html += `<div><div style="font-size:.75rem;color:var(--muted);margin-bottom:2px">Насны ангилал</div><div>${esc(answers._segment)}</div></div>`;
+  }
+
   Object.keys(SURVEY_QUESTION_LABELS).forEach(qid => {
     if (!(qid in answers)) return;
     const text = surveyAnswerText(answers[qid]);
@@ -1724,10 +1787,11 @@ function openSurveyDetail(id) {
     html += `<div><div style="font-size:.75rem;color:var(--muted);margin-bottom:2px">${esc(SURVEY_QUESTION_LABELS[qid])}</div><div>${esc(text)}</div></div>`;
   });
 
-  if (answers.q7 && answers.q7.rows) {
-    const brandLines = SURVEY_BRANDS.concat(answers.q7.otherLabel ? [answers.q7.otherLabel] : [])
+  const matrix = findSurveyMatrix(answers);
+  if (matrix && matrix.rows) {
+    const brandLines = SURVEY_BRANDS.concat(matrix.otherLabel ? [matrix.otherLabel] : [])
       .map(brand => {
-        const cell = answers.q7.rows[brand] || answers.q7.rows['__other__'];
+        const cell = matrix.rows[brand] || matrix.rows['__other__'];
         if (!cell) return null;
         const cols = [];
         if (cell.know) cols.push('Мэддэг');
@@ -1756,20 +1820,20 @@ function exportSurveyFile() {
 
   const brandCols = SURVEY_BRANDS.flatMap(b => [`${b} - Мэддэг`, `${b} - Өмнө ашиглаж байсан`, `${b} - Одоо ашигладаг`]);
   const qCols = Object.keys(SURVEY_QUESTION_LABELS);
-  const headers = ['Нэр', 'Утас', 'Нас', 'Статус', 'Код', 'Сүүлд шинэчилсэн', ...qCols.map(id => SURVEY_QUESTION_LABELS[id]), 'Бусад брэнд', ...brandCols];
+  const headers = ['Нэр', 'Утас', 'Нас', 'Ангилал', 'Статус', 'Код', 'Сүүлд шинэчилсэн', ...qCols.map(id => SURVEY_QUESTION_LABELS[id]), 'Бусад брэнд', ...brandCols];
 
   const rows = [headers, ...visible.map(r => {
     const answers = r.answers || {};
     const qVals = qCols.map(id => surveyAnswerText(answers[id]));
-    const q7 = answers.q7 || { rows: {} };
+    const matrix = findSurveyMatrix(answers) || { rows: {} };
     const brandVals = SURVEY_BRANDS.flatMap(b => {
-      const cell = q7.rows[b] || {};
+      const cell = matrix.rows[b] || {};
       return [cell.know ? '1' : '', cell.used ? '1' : '', cell.current ? '1' : ''];
     });
     return [
-      r.name, r.phone, r.age ?? '', r.completed ? 'Дууссан' : 'Дутуу',
+      r.name, r.phone, r.age ?? '', answers._segment || '', r.completed ? 'Дууссан' : 'Дутуу',
       (r.clients && r.clients.code) || '', r.updated_at ? new Date(r.updated_at).toLocaleString('mn-MN') : '',
-      ...qVals, q7.otherLabel || '', ...brandVals,
+      ...qVals, matrix.otherLabel || '', ...brandVals,
     ];
   })];
 
