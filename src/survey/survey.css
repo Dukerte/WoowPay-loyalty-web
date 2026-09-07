@@ -1,0 +1,289 @@
+/* ══════════════════════════════════════════════════════════════
+   Survey — light theme (this page's own document, so overriding
+   the base dark navy body from styles/main.css here is safe and
+   doesn't affect the wheel site). Tokens (--navy, --cyan, etc.)
+   come from that file's :root block, imported before this one.
+   ══════════════════════════════════════════════════════════════ */
+
+body {
+  background: radial-gradient(circle at 8% 0%, #E4F7FF 0%, #F5F9FD 37%, #EDF4FB 100%);
+  color: var(--text-navy);
+}
+
+#app {
+  min-height: 100svh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px 16px 48px;
+}
+
+.sv-screen {
+  width: min(640px, 100%);
+  margin: 0 auto;
+}
+
+.sv-card {
+  background: rgba(255, 255, 255, .97);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--r-card);
+  box-shadow: 0 24px 70px rgba(17, 57, 102, .12), 0 2px 8px rgba(17, 57, 102, .04);
+  padding: 40px 36px 32px;
+}
+
+@media (max-width: 560px) {
+  .sv-card { padding: 28px 20px 24px; border-radius: 20px; }
+}
+
+/* ── Progress bar ─────────────────────────────────────────── */
+.sv-progress {
+  width: min(640px, 100%);
+  height: 6px;
+  border-radius: 999px;
+  background: var(--gray-200);
+  margin: 0 auto 16px;
+  overflow: hidden;
+}
+.sv-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyan-dark), var(--cyan));
+  border-radius: 999px;
+  transition: width .3s ease;
+}
+
+/* ── Typography ───────────────────────────────────────────── */
+.sv-kicker {
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--cyan-dark);
+  margin-bottom: 10px;
+}
+.sv-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -.02em;
+  line-height: 1.15;
+  font-size: clamp(21px, 3.6vw, 27px);
+  color: var(--text-navy);
+  margin-bottom: 10px;
+}
+.sv-intro-title {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -.025em;
+  line-height: 1.1;
+  font-size: clamp(26px, 5vw, 38px);
+  color: var(--text-navy);
+  margin: 0 0 12px;
+}
+.sv-lead {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--gray-600);
+  margin-bottom: 18px;
+}
+.sv-hint {
+  font-size: 13px;
+  color: var(--gray-500);
+  margin-bottom: 12px;
+}
+.sv-hint-max { margin-bottom: 8px; }
+
+/* ── Options (single/multi) ───────────────────────────────── */
+.sv-options {
+  display: grid;
+  gap: 10px;
+  margin: 6px 0 4px;
+}
+.sv-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 15px;
+  color: var(--text-navy);
+  background: var(--white);
+}
+.sv-opt:hover { border-color: var(--cyan); background: var(--ice-blue); }
+.sv-opt input { width: 19px; height: 19px; accent-color: var(--cyan-dark); flex: 0 0 auto; }
+.sv-opt:has(input:checked) {
+  border-color: var(--cyan-dark);
+  background: var(--ice-blue);
+  box-shadow: 0 0 0 3px rgba(11, 107, 255, .08);
+}
+
+/* ── Text / textarea ──────────────────────────────────────── */
+.sv-textarea {
+  width: 100%;
+  min-height: 110px;
+  padding: 14px 16px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--r-input);
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--text-navy);
+  resize: vertical;
+}
+.sv-textarea:focus { outline: none; border-color: var(--cyan-dark); }
+
+/* ── Matrix (brand awareness grid) ────────────────────────── */
+.sv-matrix-wrap { overflow-x: auto; margin: 10px 0 4px; }
+.sv-matrix { width: 100%; border-collapse: collapse; min-width: 480px; }
+.sv-matrix th, .sv-matrix td {
+  padding: 10px 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--gray-200);
+  font-size: 13.5px;
+}
+.sv-matrix th { color: var(--gray-500); font-weight: 700; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.sv-matrix-brand { text-align: left !important; font-weight: 700; color: var(--text-navy); }
+.sv-matrix input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--cyan-dark); }
+.sv-matrix-other {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--gray-300);
+  border-radius: 9px;
+  font-size: 13.5px;
+}
+
+/* ── Scale (NPS-style) ────────────────────────────────────── */
+.sv-scale { display: flex; gap: 8px; margin: 10px 0 6px; }
+.sv-scale-btn {
+  flex: 1 1 0;
+  min-height: 48px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: 12px;
+  background: var(--white);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-navy);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.sv-scale-btn:hover { border-color: var(--cyan); }
+.sv-scale-btn.active {
+  border-color: var(--cyan-dark);
+  background: var(--cyan-dark);
+  color: var(--white);
+}
+.sv-scale-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--gray-500);
+}
+
+/* ── Errors ───────────────────────────────────────────────── */
+.sv-err {
+  min-height: 0;
+  font-size: 13px;
+  color: var(--danger);
+  margin-top: 8px;
+  display: none;
+}
+.sv-err.show { display: block; }
+
+/* ── Controls ─────────────────────────────────────────────── */
+.sv-controls {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 26px;
+}
+.sv-btn {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  border-radius: var(--r-btn);
+  padding: 13px 24px;
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.sv-btn-primary {
+  background: var(--cyan-dark);
+  color: var(--white);
+  box-shadow: var(--shadow-btn);
+}
+.sv-btn-primary:hover { background: var(--cyan-dark-hover); }
+.sv-btn-secondary {
+  background: transparent;
+  color: var(--gray-600);
+}
+.sv-btn-secondary:hover { color: var(--text-navy); }
+.sv-btn-block { width: 100%; text-align: center; }
+
+/* ── Intro screen ─────────────────────────────────────────── */
+.sv-intro .sv-card { padding: 44px 40px 32px; }
+@media (max-width: 560px) {
+  .sv-intro .sv-card { padding: 30px 22px 24px; }
+}
+.sv-field { margin-bottom: 18px; }
+.sv-field label {
+  display: block;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-navy);
+  margin-bottom: 7px;
+}
+.sv-input {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--r-input);
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--text-navy);
+}
+.sv-input:focus { outline: none; border-color: var(--cyan-dark); }
+.sv-field-note { display: block; margin-top: 6px; font-size: 12px; color: var(--gray-500); }
+.sv-privacy {
+  display: flex;
+  gap: 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--gray-500);
+  background: var(--soft-gray);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 8px 0 14px;
+}
+.sv-mini-note {
+  text-align: center;
+  font-size: 12px;
+  color: var(--gray-500);
+  margin-top: 16px;
+}
+
+/* ── Finish screen ────────────────────────────────────────── */
+.sv-finish-card { text-align: center; padding: 48px 36px; }
+.sv-finish-check {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: var(--success-bg);
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 800;
+}
+.sv-reward {
+  margin-top: 18px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--ice-blue);
+  color: var(--cyan-dark);
+  font-weight: 700;
+  font-size: 14.5px;
+}
