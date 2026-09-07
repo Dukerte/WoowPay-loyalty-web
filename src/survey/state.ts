@@ -1,4 +1,5 @@
 import type { AnswerValue, ContactInfo, SurveyState } from './types';
+import { getBandId } from './data';
 
 function newSessionId(): string {
   // crypto.randomUUID() needs a secure context (https, or localhost)
@@ -8,7 +9,7 @@ function newSessionId(): string {
 }
 
 function freshState(): SurveyState {
-  return { sessionId: newSessionId(), age: null, contact: null, answers: {} };
+  return { sessionId: newSessionId(), age: null, band: null, contact: null, answers: {} };
 }
 
 let state: SurveyState = freshState();
@@ -17,8 +18,10 @@ export function getSurveyState(): Readonly<SurveyState> {
   return state;
 }
 
+/** Age decides the question set (band) once, right here — it never
+ * changes afterwards even if the person goes back to the intro. */
 export function setAge(age: number): void {
-  state = { ...state, age };
+  state = { ...state, age, band: getBandId(age) };
 }
 
 export function setContact(contact: ContactInfo): void {

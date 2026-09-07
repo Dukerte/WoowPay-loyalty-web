@@ -49,6 +49,14 @@ export interface ScaleQuestion extends BaseQuestion {
 
 export type Question = SingleQuestion | MultiQuestion | TextQuestion | MatrixQuestion | ScaleQuestion;
 
+// The original survey draft has FOUR completely separate question
+// sets, one per age band — same 12-question skeleton and branching
+// mechanics, but different wording/options throughout (not just the
+// first question). Which set a person sees is decided once, right
+// when they submit their age on the intro screen, and never changes
+// afterwards even if they go back and forth within the questions.
+export type BandId = '18-22' | '23-29' | '30-39' | '40-plus';
+
 // ── Answers ──────────────────────────────────────────────────
 export interface MatrixCell {
   know: boolean;
@@ -77,6 +85,7 @@ export interface ContactInfo {
 export interface SurveyState {
   sessionId: string;
   age: number | null;
+  band: BandId | null; // decided once from age, see data.ts getBandId()
   contact: ContactInfo | null;
   answers: Record<string, AnswerValue>;
 }

@@ -4,9 +4,27 @@
 //  exactly as written there; only the encoding (typed schema vs.
 //  hand-rolled HTML/JS) changed. See engine.ts for branch logic.
 // ══════════════════════════════════════════════════════════════
-import type { Question } from './types';
+import type { BandId, Question } from './types';
 
 export const BRANDS = ['LendMN', 'WooW Pay', 'Pocket', 'Numur', 'Sono', 'Netpay', 'Zeely'];
+
+// Which of the four age-band question sets a person sees, decided
+// once from the age they type on the intro screen (18+ already
+// enforced there). See midBand.ts for the other three sets — this
+// file only holds the 18–22 set below (Q1..Q12 etc.).
+export function getBandId(age: number): BandId {
+  if (age <= 22) return '18-22';
+  if (age <= 29) return '23-29';
+  if (age <= 39) return '30-39';
+  return '40-plus';
+}
+
+export const BAND_LABELS: Record<BandId, string> = {
+  '18-22': '18–22 нас',
+  '23-29': '23–29 нас',
+  '30-39': '30–39 нас',
+  '40-plus': '40+ нас',
+};
 
 // Q1–Q7 are always shown in order. Q3 reveals Q3A when "Тийм" is
 // picked. Q8 reveals Q8_YES (with sub-fields Q8A–Q8D) or Q8_NO
@@ -223,7 +241,9 @@ export const Q9_USED_REASON: Question = {
   id: 'q9_used_reason',
   kicker: '09 • WooW Pay-г ашигласан туршлагын талаар',
   title: 'WooW Pay-г ашиглах болсон гол шалтгаан юу вэ?',
-  type: 'single',
+  hint: '2 хүртэл',
+  type: 'multi',
+  max: 2,
   options: [
     'Хэрэгтэй үед хурдан шийдэл шаардлагатай байсан',
     'Ашиглахад хялбар',
@@ -231,6 +251,7 @@ export const Q9_USED_REASON: Question = {
     'Найз, танил санал болгосон',
     'Урамшуулал, нэмэлт давуу тал',
     'Хамтрагч байгууллага дээр ашиглах боломж',
+    'Бусад',
   ],
 };
 
@@ -246,9 +267,10 @@ export const Q9_USED_RECOMMEND: Question = {
   id: 'q9_used_recommend',
   kicker: '09 • WooW Pay-г ашигласан туршлагын талаар',
   title: 'WooW Pay-г найз, танилдаа санал болгох магадлал хэр вэ?',
+  hint: '0–10 оноо',
   type: 'scale',
-  min: 1,
-  max: 6,
+  min: 0,
+  max: 10,
   minLabel: 'Огт санал болгохгүй',
   maxLabel: 'Маш өндөр магадлалтай',
 };
@@ -257,12 +279,17 @@ export const Q9_KNOWN_NOTUSED_WHY: Question = {
   id: 'q9_known_notused_why',
   kicker: '09 • WooW Pay-г мэддэг ч ашиглаж үзээгүй',
   title: 'Яагаад ашиглаж үзээгүй вэ?',
-  type: 'single',
+  hint: '2 хүртэл',
+  type: 'multi',
+  max: 2,
   options: [
+    'Хэрэгцээ гараагүй',
     'Нөхцөлийг сайн мэдэхгүй',
+    'Найдвартай байдал, аюулгүй байдалд эргэлздэг',
     'Өөр апп ашигладаг',
     'Хэрхэн ашиглахаа сайн мэдэхгүй',
     'Шаардлага хангахгүй эсвэл боломжит дүн хүрэлцэхгүй гэж боддог',
+    'Бусад',
   ],
 };
 
@@ -270,11 +297,15 @@ export const Q9_KNOWN_NOTUSED_DRIVER: Question = {
   id: 'q9_known_notused_driver',
   kicker: '09 • WooW Pay-г мэддэг ч ашиглаж үзээгүй',
   title: 'WooW Pay-г анх ашиглаж үзэхэд юу хамгийн их нөлөөлөх вэ?',
-  type: 'single',
+  hint: '2 хүртэл',
+  type: 'multi',
+  max: 2,
   options: [
     'Ил тод, ойлгомжтой нөхцөл',
     'Найдвартай / албан ёсны байдал',
     'Бодит хэрэглэгчийн сэтгэгдэл',
+    'Найзын санал',
+    'Урамшуулал, нэмэлт давуу тал',
     'Бодит хэрэгцээ гарах үед',
     'Хялбар бүртгэл, ашиглалт',
   ],
@@ -284,7 +315,9 @@ export const Q9_UNKNOWN_TRUST: Question = {
   id: 'q9_unknown_trust',
   kicker: '09 • Шинэ санхүүгийн апп-д итгэхэд',
   title: 'Шинэ санхүүгийн апп-д итгэхэд танд юу хамгийн чухал вэ?',
-  type: 'single',
+  hint: '2 хүртэл',
+  type: 'multi',
+  max: 2,
   options: [
     'Албан ёсны, найдвартай байгууллага байх',
     'Хувийн мэдээлэл аюулгүй байх',
@@ -351,9 +384,9 @@ export const Q12: Question = {
 
 export const INTRO_COPY = {
   kicker: 'WooW Pay хэрэглэгчийн судалгаа',
-  title: 'Судалгаанд оролцоод,<br/>Урамшууллын хүрд эргүүлэх эрхээ аваарай',
+  title: 'Судалгаанд оролцоод,<br/>хүрд эргүүлэх эрхээ аваарай.',
   ageLabel: 'Таны нас',
-  ageNote: '18 ба түүнээс дээш насны хэрэглэгчид оролцоно.',
+  agePlaceholder: 'Та өөрийн насаа тоогоор оруулна уу.',
   submitLabel: 'Судалгааг эхлүүлэх',
   miniNote: 'WooW Pay • Судалгаа ойролцоогоор 3–6 минут үргэлжилнэ',
 };

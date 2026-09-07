@@ -19,16 +19,18 @@ export function IntroScreen(onSubmit: (age: number) => void, prefillAge?: number
   el.innerHTML = `
     <div class="sv-card">
       <img src="/event-title.webp" class="sv-hero-title" alt="Урамшууллын хүрд" />
-      <div class="sv-kicker">${esc(INTRO_COPY.kicker)}</div>
-      <h1 class="sv-intro-title">${INTRO_COPY.title}</h1>
+
+      <div class="sv-intro-copy">
+        <div class="sv-kicker">${esc(INTRO_COPY.kicker)}</div>
+        <h1 class="sv-intro-title">${INTRO_COPY.title}</h1>
+      </div>
 
       <img src="/owl-pointing.webp" class="sv-hero-owl" alt="" aria-hidden="true" />
 
       <form id="sv-intro-form" novalidate>
         <div class="sv-field">
           <label for="sv-age">${esc(INTRO_COPY.ageLabel)}</label>
-          <input id="sv-age" class="sv-input" type="number" inputmode="numeric" min="1" max="100" step="1" placeholder="Насаа тоогоор оруулна уу" value="${prefillAge ? esc(String(prefillAge)) : ''}" required autofocus />
-          <small class="sv-field-note">${esc(INTRO_COPY.ageNote)}</small>
+          <input id="sv-age" class="sv-input" type="number" inputmode="numeric" min="1" max="100" step="1" placeholder="${esc(INTRO_COPY.agePlaceholder)}" value="${prefillAge ? esc(String(prefillAge)) : ''}" required autofocus />
         </div>
         <div class="sv-err" id="sv-intro-err"></div>
         <button type="submit" class="sv-btn sv-btn-primary sv-btn-block">${esc(INTRO_COPY.submitLabel)} →</button>

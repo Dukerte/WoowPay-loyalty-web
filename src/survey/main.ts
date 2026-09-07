@@ -6,8 +6,19 @@ import { buildSequence } from './engine';
 import { IntroScreen, ContactScreen, FinishScreen } from './screens';
 import { QuestionScreen } from './render';
 import { saveProgress, submitSurvey } from './surveyService';
+import { BAND_LABELS } from './data';
 
 const app = document.getElementById('app')!;
+
+// Every saved/submitted answers blob carries which age-band question
+// set produced it — same "q1" id means different things depending on
+// the band, so admin tooling needs this to interpret answers
+// correctly (see also BAND_LABELS in data.ts).
+function answersWithSegment(): Record<string, AnswerValue> {
+  const state = getSurveyState();
+  const segment = state.band ? BAND_LABELS[state.band] : undefined;
+  return segment ? { ...state.answers, _segment: segment } : state.answers;
+}
 
 function showIntro() {
   app.innerHTML = '';
@@ -16,13 +27,15 @@ function showIntro() {
     // First save happens the moment we have an age, even before
     // question 1 is answered — keyed by sessionId, since we don't
     // have a phone number yet (that's collected on the last screen).
-    saveProgress(getSurveyState().sessionId, age, getSurveyState().answers);
+    saveProgress(getSurveyState().sessionId, age, answersWithSegment());
     goToFirstQuestion();
   }, getSurveyState().age));
 }
 
 function goToFirstQuestion() {
-  const seq = buildSequence(getSurveyState().answers);
+  const state = getSurveyState();
+  if (!state.band) { showIntro(); return; }
+  const seq = buildSequence(state.band, state.answers);
   if (seq[0]) renderQuestion(seq[0].id);
   else showContact();
 }
@@ -32,8 +45,9 @@ function goToFirstQuestion() {
  * disappeared because an earlier answer changed on "back" is
  * always reflected immediately. */
 function renderQuestion(id: string) {
-  const answers = getSurveyState().answers;
-  const seq = buildSequence(answers);
+  const state = getSurveyState();
+  if (!state.band) { showIntro(); return; }
+  const seq = buildSequence(state.band, state.answers);
   const idx = seq.findIndex(q => q.id === id);
   const question = seq[idx];
   if (!question) { goToFirstQuestion(); return; }
@@ -46,8 +60,8 @@ function renderQuestion(id: string) {
     stepTotal: seq.length + 1, // +1 for the contact screen at the end
     onNext: (value: AnswerValue) => {
       setAnswer(id, value);
-      const state = getSurveyState();
-      saveProgress(state.sessionId, state.age, state.answers);
+      const s = getSurveyState();
+      saveProgress(s.sessionId, s.age, answersWithSegment());
       goForward(id);
     },
     onBack: idx === 0
@@ -57,7 +71,9 @@ function renderQuestion(id: string) {
 }
 
 function goForward(currentId: string) {
-  const seq = buildSequence(getSurveyState().answers);
+  const state = getSurveyState();
+  if (!state.band) { showIntro(); return; }
+  const seq = buildSequence(state.band, state.answers);
   const idx = seq.findIndex(q => q.id === currentId);
   const next = seq[idx + 1];
   if (next) renderQuestion(next.id);
@@ -65,7 +81,8 @@ function goForward(currentId: string) {
 }
 
 function showContact() {
-  const seq = buildSequence(getSurveyState().answers);
+  const state = getSurveyState();
+  const seq = state.band ? buildSequence(state.band, state.answers) : [];
   app.innerHTML = '';
   app.appendChild(ContactScreen(
     seq.length, // last step, index == length → 100% progress
@@ -89,7 +106,7 @@ async function showFinish() {
   let clientToken: string | null = null;
 
   if (state.age !== null && state.contact) {
-    const result = await submitSurvey(state.sessionId, state.age, state.answers, state.contact);
+    const result = await submitSurvey(state.sessionId, state.age, answersWithSegment(), state.contact);
     alreadyClaimed = !!result.alreadyClaimed;
     clientCode = result.clientCode ?? null;
     clientToken = result.clientToken ?? null;
