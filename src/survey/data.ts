@@ -388,7 +388,7 @@ export const INTRO_COPY = {
   ageLabel: 'Таны нас',
   agePlaceholder: 'Та өөрийн насаа тоогоор оруулна уу.',
   submitLabel: 'Судалгааг эхлүүлэх',
-  miniNote: 'WooW Pay • Судалгаа ойролцоогоор 3–6 минут үргэлжилнэ',
+  miniNote: 'WooW Pay • Судалгаа ойролцоогоор 2 минут үргэлжилнэ',
 };
 
 // Shown as the LAST screen, right before the reward — phone and name

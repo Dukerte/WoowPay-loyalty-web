@@ -93,17 +93,18 @@ export function ContactScreen(
         <div class="sv-err" id="sv-contact-err"></div>
         <div class="sv-controls">
           <button type="button" class="sv-btn sv-btn-secondary" id="sv-contact-back">← Буцах</button>
-          <button type="submit" class="sv-btn sv-btn-primary">${esc(CONTACT_COPY.submitLabel)} →</button>
+          <button type="submit" class="sv-btn sv-btn-primary" id="sv-contact-submit">${esc(CONTACT_COPY.submitLabel)} →</button>
         </div>
       </form>
     </div>
   `;
 
-  const form    = el.querySelector<HTMLFormElement>('#sv-contact-form')!;
-  const phoneEl = el.querySelector<HTMLInputElement>('#sv-phone')!;
-  const nameEl  = el.querySelector<HTMLInputElement>('#sv-name')!;
-  const errEl   = el.querySelector<HTMLDivElement>('#sv-contact-err')!;
-  const backBtn = el.querySelector<HTMLButtonElement>('#sv-contact-back')!;
+  const form      = el.querySelector<HTMLFormElement>('#sv-contact-form')!;
+  const phoneEl   = el.querySelector<HTMLInputElement>('#sv-phone')!;
+  const nameEl    = el.querySelector<HTMLInputElement>('#sv-name')!;
+  const errEl     = el.querySelector<HTMLDivElement>('#sv-contact-err')!;
+  const backBtn   = el.querySelector<HTMLButtonElement>('#sv-contact-back')!;
+  const submitBtn = el.querySelector<HTMLButtonElement>('#sv-contact-submit')!;
 
   phoneEl.addEventListener('input', () => {
     phoneEl.value = phoneEl.value.replace(/\D/g, '').slice(0, 8);
@@ -111,8 +112,16 @@ export function ContactScreen(
 
   backBtn.addEventListener('click', onBack);
 
+  // This is the screen that actually grants the reward — a double
+  // click/tap (common on slow connections) must not be able to fire
+  // onSubmit twice, since that risks two spin grants for one person.
+  // The RPC itself is also race-safe (row-locked), but killing the
+  // possibility client-side is cheap and immediate.
+  let submitted = false;
+
   form.addEventListener('submit', (e) => {
     e.preventDefault();
+    if (submitted) return;
     errEl.textContent = '';
 
     const phone = phoneEl.value.trim();
@@ -120,6 +129,10 @@ export function ContactScreen(
 
     if (phone.length !== 8) { errEl.textContent = 'Утасны дугаар 8 оронтой байх ёстой.'; return; }
     if (!name) { errEl.textContent = 'Нэрээ оруулна уу.'; return; }
+
+    submitted = true;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Илгээж байна…';
 
     onSubmit({ phone, name });
   });
