@@ -392,6 +392,8 @@
       </span>
       <button class="btn-sm btn-import" id="import-btn" onclick="document.getElementById('csv-file').click()" title="Заавал: Нэр, Утас багана. Мөн байвал ашиглана: Код, Төрөл (Мерчант/Харилцагч), Эргэлт (эсвэл Эрхийн тоо), Идэвхтэй, Тэмдэглэл. Код баганагүй эсвэл хоосон бол систем автоматаар давхцахгүй код үүсгэнэ.">📥 CSV/XLSX Оруулах</button>
       <input type="file" id="csv-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importFile(event)" />
+      <button class="btn-sm btn-import" id="external-id-btn" onclick="document.getElementById('external-id-file').click()" title="2 багана: Утас, Харилцагч ID. Утасны дугаараар одоо байгаа харилцагчидтой тулгаж, Харилцагч ID-г бичнэ/шинэчилнэ. Дахин байнга ажиллуулж болно.">🆔 Харилцагч ID бүртгэх</button>
+      <input type="file" id="external-id-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importExternalIds(event)" />
       <button class="btn-sm btn-export" onclick="exportFile()">📤 CSV/XLSX Татах</button>
       <button class="btn-sm btn-add" onclick="openModal()">+ Шинэ харилцагч</button>
       <button class="btn-sm" id="trash-toggle-btn" onclick="switchTrashView(true)">🗑️ Хогийн сав (<span id="trash-count">0</span>)</button>
@@ -424,6 +426,7 @@
             <th>Нэр</th>
             <th>Утас</th>
             <th>Код</th>
+            <th>Харилцагч ID</th>
             <th>Төрөл</th>
             <th>Эргэлт</th>
             <th>Статус</th>
@@ -433,7 +436,7 @@
           </tr>
         </thead>
         <tbody id="table-body">
-          <tr class="empty-row"><td colspan="10">Ачааллаж байна...</td></tr>
+          <tr class="empty-row"><td colspan="11">Ачааллаж байна...</td></tr>
         </tbody>
       </table>
     </div>
@@ -621,6 +624,11 @@
         <button class="btn-gen" onclick="genCode()">🎲 Авто</button>
       </div>
       <div class="hint">WC- = Харилцагч &nbsp;|&nbsp; WM- = Мерчант</div>
+    </div>
+    <div class="form-row">
+      <label>Харилцагч ID</label>
+      <input type="text" id="f-external-id" placeholder="Core системийн ID (сонголтоор)" />
+      <div class="hint">Core системтэй тулгах ID. Хоосон байж болно.</div>
     </div>
     <div class="form-row">
       <label>Төрөл *</label>
@@ -1122,7 +1130,7 @@ function renderTable() {
   document.getElementById('next-btn').disabled = currentPage >= total;
 
   if (!slice.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="10">Илэрц олдсонгүй</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="11">Илэрц олдсонгүй</td></tr>`;
     return;
   }
 
@@ -1168,6 +1176,7 @@ function renderTable() {
         <td>${esc(c.name)}</td>
         <td>${esc(c.phone)}</td>
         <td><code style="font-size:.8rem;color:var(--cyan)">${esc(c.code)}</code></td>
+        <td style="font-size:.8rem;color:var(--muted)">${c.external_client_id ? esc(c.external_client_id) : '—'}</td>
         <td><span class="badge badge-${c.user_type}">${c.user_type === 'merchant' ? 'Мерчант' : 'Харилцагч'}</span></td>
         <td>
           <div class="spins-bar">
@@ -1196,6 +1205,7 @@ function openModal(client = null) {
   document.getElementById('f-name').value    = client?.name     || '';
   document.getElementById('f-phone').value   = client?.phone    || '';
   document.getElementById('f-code').value    = client?.code     || '';
+  document.getElementById('f-external-id').value = client?.external_client_id || '';
   document.getElementById('f-type').value    = client?.user_type|| 'client';
   document.getElementById('f-spins').value   = client?.spins    ?? 1;
   document.getElementById('f-enabled').value = client ? String(client.enabled) : 'true';
@@ -1227,6 +1237,7 @@ async function saveClient() {
   const name    = document.getElementById('f-name').value.trim();
   const phone   = document.getElementById('f-phone').value.trim();
   const code    = document.getElementById('f-code').value.trim().toUpperCase();
+  const externalId = document.getElementById('f-external-id').value.trim() || null;
   const type    = document.getElementById('f-type').value;
   const spins   = parseInt(document.getElementById('f-spins').value) || 1;
   const enabled = document.getElementById('f-enabled').value === 'true';
@@ -1244,7 +1255,7 @@ async function saveClient() {
   errEl.textContent = '';
 
   try {
-    const payload = { name, phone, code, user_type: type, spins, enabled, notes };
+    const payload = { name, phone, code, external_client_id: externalId, user_type: type, spins, enabled, notes };
     let error;
     if (editingId) {
       ({ error } = await sbClient.from('clients').update(payload).eq('id', editingId));
@@ -1989,7 +2000,7 @@ async function deletePrize(id, label) {
 // ══════════════════════════════════════════════════════════════
 //  CSV/XLSX IMPORT / EXPORT (clients) — uses SheetJS (window.XLSX)
 // ══════════════════════════════════════════════════════════════
-const EXPORT_HEADERS = ['Нэр','Утас','Код','Төрөл','Эргэлт','Ашигласан','Идэвхтэй','Хонжвор','Олгосон эсэх','Тэмдэглэл'];
+const EXPORT_HEADERS = ['Нэр','Утас','Код','Харилцагч ID','Төрөл','Эргэлт','Ашигласан','Идэвхтэй','Хонжвор','Олгосон эсэх','Тэмдэглэл'];
 
 /** One row per spin (same expansion as the on-screen table) — a
     client who spun 3 times exports as 3 rows, each with that spin's
@@ -2003,7 +2014,7 @@ function buildExportRows() {
   const rows = [EXPORT_HEADERS];
   filteredList.forEach(({ client: c, prize }) => {
     rows.push([
-      c.name, c.phone, c.code, c.user_type, c.spins, c.spins_used,
+      c.name, c.phone, c.code, c.external_client_id || '', c.user_type, c.spins, c.spins_used,
       c.enabled ? 'тийм' : 'үгүй',
       prize ? prize.label : '',
       prize ? (prize.fulfilled ? 'тийм' : 'үгүй') : '',
@@ -2061,6 +2072,103 @@ function importFile(event) {
       event.target.value = '';
     };
     reader.readAsText(file, 'UTF-8');
+  }
+}
+
+/** "Харилцагч ID бүртгэх" — a standalone 2-column (Утас, ID) file
+    that backfills/refreshes `clients.external_client_id` by matching
+    phone number, via the `bulk_set_external_client_ids` RPC. This is
+    intentionally separate from the general CSV/XLSX import above:
+    the core system is the source of truth for which phone maps to
+    which client ID, so re-running this with a fresher export from the
+    core is the expected way to keep IDs current over time — it only
+    ever touches existing clients by phone match, never creates rows. */
+function importExternalIds(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const isXlsx = /\.(xlsx|xls)$/i.test(file.name);
+
+  const handleRows = (rows) => runExternalIdImport(rows);
+
+  if (isXlsx) {
+    if (!window.XLSX) { showToast('XLSX сан ачаалагдсангүй — интернэт холболтоо шалгаад дахин оролдоно уу', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
+      handleRows(rows);
+      event.target.value = '';
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const lines = e.target.result.split('\n').map(l => l.trim()).filter(Boolean);
+      const rows = lines.map(parseCSVLine);
+      handleRows(rows);
+      event.target.value = '';
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+}
+
+async function runExternalIdImport(rows) {
+  if (rows.length < 2) { showToast('Файл хоосон байна', 'error'); return; }
+
+  const header = rows[0].map(h => String(h || '').trim().toLowerCase());
+  const findCol = (...names) => {
+    for (const n of names) {
+      const i = header.indexOf(n.toLowerCase());
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
+  const phoneCol = findCol('утас', 'phone');
+  const idCol    = findCol('харилцагч id', 'харилцагчийн id', 'id', 'гадаад id', 'client id');
+
+  if (phoneCol < 0 || idCol < 0) {
+    showToast('Толгой мөрөнд "Утас" болон "ID" багана олдсонгүй', 'error');
+    return;
+  }
+
+  const mappings = [];
+  for (let i = 1; i < rows.length; i++) {
+    const cols = rows[i];
+    if (!cols) continue;
+    const phone = String(cols[phoneCol] || '').trim();
+    const externalId = String(cols[idCol] || '').trim();
+    if (!phone || !externalId) continue;
+    mappings.push({ phone, external_id: externalId });
+  }
+
+  if (!mappings.length) { showToast('Хүчинтэй мөр олдсонгүй', 'error'); return; }
+
+  const btn = document.getElementById('external-id-btn');
+  const originalText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = `⏳ Тулгаж байна... (${mappings.length})`; }
+
+  try {
+    const { data, error } = await sbClient.rpc('bulk_set_external_client_ids', { p_mappings: mappings });
+    if (error) throw error;
+    if (!data || data.ok === false) {
+      showToast(`Алдаа: ${data?.error || 'тодорхойгүй алдаа'}`, 'error');
+      return;
+    }
+
+    const unmatched = data.unmatched_phones || [];
+    if (unmatched.length) console.warn('Тохирох харилцагч олдоогүй утаснууд:', unmatched);
+
+    showToast(
+      `✅ ${data.matched_client_rows}/${data.total_pairs} харилцагчид ID бүртгэгдлээ` +
+      (unmatched.length ? ` — ${unmatched.length} утас тохирсонгүй (консол лог-г шалгана уу)` : ''),
+      'success'
+    );
+    loadClients();
+  } catch (e) {
+    showToast('Алдаа гарлаа: ' + (e.message || e), 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = originalText; }
   }
 }
 
@@ -2216,14 +2324,15 @@ async function importRows(rows) {
     return -1;
   };
   const col = {
-    name:    findCol('нэр'),
-    phone:   findCol('утас'),
-    code:    findCol('код'),
-    type:    findCol('төрөл'),
-    spins:   findCol('эргэлт', 'эрхийн тоо', 'эрх', 'тоо хэмжээ', 'тоо'),
-    used:    findCol('ашигласан'),
-    enabled: findCol('идэвхтэй'),
-    notes:   findCol('тэмдэглэл'),
+    name:       findCol('нэр'),
+    phone:      findCol('утас'),
+    code:       findCol('код'),
+    externalId: findCol('харилцагч id', 'харилцагчийн id', 'гадаад id', 'client id', 'id'),
+    type:       findCol('төрөл'),
+    spins:      findCol('эргэлт', 'эрхийн тоо', 'эрх', 'тоо хэмжээ', 'тоо'),
+    used:       findCol('ашигласан'),
+    enabled:    findCol('идэвхтэй'),
+    notes:      findCol('тэмдэглэл'),
   };
   if (col.name < 0 || col.phone < 0) {
     showToast('Толгой мөрөнд "Нэр", "Утас" багана олдсонгүй', 'error');
@@ -2292,6 +2401,7 @@ async function importRows(rows) {
       name:       String(cols[col.name] || ''),
       phone:      rawPhone,
       code,
+      external_client_id: col.externalId >= 0 ? (String(cols[col.externalId] || '').trim() || null) : null,
       user_type:  userType,
       spins,
       spins_used: col.used >= 0 ? (parseInt(cols[col.used]) || 0) : 0,
