@@ -430,7 +430,7 @@
             <th>Төрөл</th>
             <th>Эргэлт</th>
             <th>Статус</th>
-            <th>Сүүлд эргүүлсэн</th>
+            <th>Эргүүлсэн огноо</th>
             <th>Хонжвор</th>
             <th>Үйлдэл</th>
           </tr>
@@ -1138,9 +1138,12 @@ function renderTable() {
     const c = row.client;
     const prize = row.prize;
     const pct  = c.spins > 0 ? Math.min(100, Math.round((c.spins_used / c.spins) * 100)) : 0;
-    const date = c.last_spin_at
-      ? formatWonAt(c.last_spin_at)
-      : '—';
+    // Each row is ONE spin, so show that spin's own timestamp (won_at),
+    // not the client's latest spin — otherwise every row of a
+    // multi-spin client shows the same date and older spins can't be looked up.
+    const date = prize && prize.wonAt
+      ? formatWonAt(prize.wonAt)
+      : (c.last_spin_at ? formatWonAt(c.last_spin_at) : '—');
     const prizeCell = prize
       ? `${esc(prize.label)} <span class="badge ${prize.fulfilled ? 'badge-on' : 'badge-wait'}" style="margin-left:4px">${prize.fulfilled ? 'Олгосон' : 'Хүлээгдэж буй'}</span>`
       : '<span style="color:var(--muted)">—</span>';
