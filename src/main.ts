@@ -16,7 +16,7 @@ function showCodeEntry() {
 
 async function showSpinScreen(userType: UserType, spins: number, code: string, phone: string) {
   app.innerHTML = '<div class="ce-loading">Ачааллаж байна...</div>';
-  const prizes = await fetchPrizes(userType);
+  const prizes = await fetchPrizes(userType, code);
   app.innerHTML = '';
   app.appendChild(SpinScreen(userType, code, spins, phone, prizes, showCodeEntry, (won: Prize[], wonCode: string) => {
     showEndScreen(won, wonCode);
