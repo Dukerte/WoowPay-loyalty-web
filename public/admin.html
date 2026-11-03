@@ -838,6 +838,19 @@ window.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') login();
     });
   });
+
+  // Stay logged in across refreshes: supabase-js already keeps the session
+  // in this browser (and renews it), but the page never looked for it, so
+  // every refresh showed the login screen again. If a saved session exists,
+  // go straight into the app. "Гарах" still signs out completely.
+  (async () => {
+    try {
+      if (!sbClient) return;
+      const { data } = await sbClient.auth.getSession();
+      const s = data && data.session;
+      if (s && s.user && s.user.email) showApp(s.user.email);
+    } catch (e) { /* no saved session: stay on the login screen */ }
+  })();
 });
 
 // ══════════════════════════════════════════════════════════════
