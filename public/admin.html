@@ -394,6 +394,7 @@
       <input type="file" id="csv-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importFile(event)" />
       <button class="btn-sm btn-import" id="external-id-btn" onclick="document.getElementById('external-id-file').click()" title="2 багана: Утас, Харилцагч ID. Утасны дугаараар одоо байгаа харилцагчидтой тулгаж, Харилцагч ID-г бичнэ/шинэчилнэ. Дахин байнга ажиллуулж болно.">🆔 Харилцагч ID бүртгэх</button>
       <input type="file" id="external-id-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="importExternalIds(event)" />
+      <button class="btn-sm" onclick="openReport()" title="Сонгосон цагийн хооронд хэнд эрх олгосон, хэнд хонжвор олгосон тайлан">📊 Тайлан</button>
       <button class="btn-sm btn-export" onclick="exportFile()">📤 CSV/XLSX Татах</button>
       <button class="btn-sm btn-add" onclick="openModal()">+ Шинэ харилцагч</button>
       <button class="btn-sm" id="trash-toggle-btn" onclick="switchTrashView(true)">🗑️ Хогийн сав (<span id="trash-count">0</span>)</button>
@@ -431,12 +432,13 @@
             <th>Эргэлт</th>
             <th>Статус</th>
             <th>Эргүүлсэн огноо</th>
+            <th>Эрх олгосон огноо</th>
             <th>Хонжвор</th>
             <th>Үйлдэл</th>
           </tr>
         </thead>
         <tbody id="table-body">
-          <tr class="empty-row"><td colspan="11">Ачааллаж байна...</td></tr>
+          <tr class="empty-row"><td colspan="12">Ачааллаж байна...</td></tr>
         </tbody>
       </table>
     </div>
@@ -690,6 +692,47 @@
     </div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal('rewards-modal')">Хаах</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ ТАЙЛАН (activity report) MODAL ════════════════════════════ -->
+<div class="modal-overlay" id="report-modal" onclick="closeOnBg(event, 'report-modal')">
+  <div class="modal" style="max-width:900px;max-height:88vh;overflow-y:auto;">
+    <div class="modal-title">📊 Тайлан — эрх олголт ба хонжвор</div>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px;">
+      <input type="datetime-local" class="filter-sel" id="rep-from" style="padding:4px 8px" title="Эхлэх цаг" />
+      <span style="color:var(--muted)">—</span>
+      <input type="datetime-local" class="filter-sel" id="rep-to" style="padding:4px 8px" title="Дуусах цаг" />
+      <button class="btn-sm" onclick="setReportRange('hour')">Сүүлийн 1 цаг</button>
+      <button class="btn-sm" onclick="setReportRange('today')">Өнөөдөр</button>
+      <button class="btn-sm" onclick="setReportRange('yesterday')">Өчигдөр</button>
+      <button class="btn-sm btn-add" onclick="runReport()">Харах</button>
+      <button class="btn-sm btn-export" onclick="exportReport()" style="margin-left:auto">📤 CSV/XLSX Татах</button>
+    </div>
+    <div id="rep-summary" style="font-size:.9rem;margin-bottom:10px;color:var(--text)"></div>
+    <div style="font-size:.78rem;color:var(--muted);margin-bottom:10px;">Эрх олгосон бүртгэл 2026.11.03-аас эхэлсэн тул түүнээс өмнөх эрх олголтыг харуулахгүй. Хонжвор олгосон болон эргүүлсэн түүх өмнөх огнооноос ч харагдана.</div>
+
+    <div style="font-weight:600;margin:10px 0 4px;">🎟️ Эрх олгосон</div>
+    <div class="table-wrap" style="padding:0;overflow-x:auto;">
+      <table><thead><tr><th>Цаг</th><th>Нэр</th><th>Утас</th><th>Код</th><th>Эрх</th><th>Хэн / эх сурвалж</th></tr></thead>
+      <tbody id="rep-grants"></tbody></table>
+    </div>
+
+    <div style="font-weight:600;margin:16px 0 4px;">✅ Хонжвор олгосон</div>
+    <div class="table-wrap" style="padding:0;overflow-x:auto;">
+      <table><thead><tr><th>Цаг</th><th>Нэр</th><th>Утас</th><th>Код</th><th>Шагнал</th><th>Хэн олгосон</th></tr></thead>
+      <tbody id="rep-fulfilled"></tbody></table>
+    </div>
+
+    <div style="font-weight:600;margin:16px 0 4px;">🎡 Эргүүлсэн</div>
+    <div class="table-wrap" style="padding:0;overflow-x:auto;">
+      <table><thead><tr><th>Сүүлд</th><th>Нэр</th><th>Утас</th><th>Код</th><th>Эргэлтийн тоо</th></tr></thead>
+      <tbody id="rep-spun"></tbody></table>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('report-modal')">Хаах</button>
     </div>
   </div>
 </div>
@@ -1130,7 +1173,7 @@ function renderTable() {
   document.getElementById('next-btn').disabled = currentPage >= total;
 
   if (!slice.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="11">Илэрц олдсонгүй</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="12">Илэрц олдсонгүй</td></tr>`;
     return;
   }
 
@@ -1189,6 +1232,7 @@ function renderTable() {
         </td>
         <td><span class="badge ${c.enabled ? 'badge-on' : 'badge-off'}">${c.enabled ? 'Идэвхтэй' : 'Хаасан'}</span></td>
         <td style="font-size:.78rem;color:var(--muted)">${date}</td>
+        <td style="font-size:.78rem;color:var(--muted)">${c.last_grant_at ? formatWonAt(c.last_grant_at) : '—'}</td>
         <td style="font-size:.82rem">${prizeCell}</td>
         <td>${actionsCell}</td>
       </tr>`;
@@ -1220,6 +1264,119 @@ function openModal(client = null) {
 
 function closeModal(id = 'modal') { document.getElementById(id).classList.remove('open'); }
 function closeOnBg(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+
+// ══════════════════════════════════════════════════════════════
+//  ТАЙЛАН — who got new spins / who had prizes marked as given
+//  in a chosen time window. Data comes from the admin-only RPC
+//  get_activity_report (spin_grants log + spin_results). Read-only:
+//  nothing here changes any client or prize.
+// ══════════════════════════════════════════════════════════════
+let reportData = null;
+
+function _pad2(n) { return String(n).padStart(2, '0'); }
+function _toLocalInput(d) {
+  return `${d.getFullYear()}-${_pad2(d.getMonth() + 1)}-${_pad2(d.getDate())}T${_pad2(d.getHours())}:${_pad2(d.getMinutes())}`;
+}
+function _fmtTime(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return `${d.getMonth() + 1}.${d.getDate()}, ${_pad2(d.getHours())}:${_pad2(d.getMinutes())}`;
+}
+
+function openReport() {
+  const now = new Date();
+  const start = new Date(now); start.setHours(0, 0, 0, 0);
+  document.getElementById('rep-from').value = _toLocalInput(start);
+  document.getElementById('rep-to').value = _toLocalInput(now);
+  document.getElementById('report-modal').classList.add('open');
+  runReport();
+}
+
+function setReportRange(kind) {
+  const now = new Date();
+  let from = new Date(now), to = new Date(now);
+  if (kind === 'hour') {
+    from = new Date(now.getTime() - 3600000);
+  } else if (kind === 'today') {
+    from.setHours(0, 0, 0, 0);
+  } else if (kind === 'yesterday') {
+    from.setDate(from.getDate() - 1); from.setHours(0, 0, 0, 0);
+    to = new Date(from); to.setHours(23, 59, 0, 0);
+  }
+  document.getElementById('rep-from').value = _toLocalInput(from);
+  document.getElementById('rep-to').value = _toLocalInput(to);
+  runReport();
+}
+
+async function runReport() {
+  if (!sbClient) return;
+  const fromV = document.getElementById('rep-from').value;
+  const toV   = document.getElementById('rep-to').value;
+  if (!fromV || !toV) { showToast('Эхлэх болон дуусах цагаа сонгоно уу', 'error'); return; }
+  const from = new Date(fromV);
+  const to   = new Date(new Date(toV).getTime() + 60000); // include the end minute
+  if (to <= from) { showToast('Дуусах цаг нь эхлэх цагаас хойш байх ёстой', 'error'); return; }
+
+  document.getElementById('rep-summary').textContent = 'Ачааллаж байна...';
+  const { data, error } = await sbClient.rpc('get_activity_report', {
+    p_from: from.toISOString(), p_to: to.toISOString()
+  });
+  if (error || !data || data.ok === false) {
+    document.getElementById('rep-summary').textContent = '';
+    showToast('Тайлан татахад алдаа гарлаа' + (data && data.error ? ' (' + data.error + ')' : ''), 'error');
+    return;
+  }
+  reportData = data;
+
+  const grants = data.grants || [], done = data.fulfilled || [], spun = data.spun || [];
+  const totalSpins = grants.reduce((s, g) => s + (g.delta || 0), 0);
+  const grantPeople = new Set(grants.map(g => g.code)).size;
+  const donePeople = new Set(done.map(g => g.code)).size;
+  document.getElementById('rep-summary').innerHTML =
+    `<b>${grantPeople}</b> хүнд нийт <b>${totalSpins}</b> эрх олгосон · ` +
+    `<b>${done.length}</b> хонжвор олгосон (<b>${donePeople}</b> хүн) · ` +
+    `<b>${spun.length}</b> хүн эргүүлсэн`;
+
+  const empty = (n) => `<tr class="empty-row"><td colspan="${n}">Энэ хугацаанд бүртгэл алга</td></tr>`;
+  document.getElementById('rep-grants').innerHTML = grants.length ? grants.map(g => `
+    <tr><td style="white-space:nowrap">${_fmtTime(g.at)}</td><td>${esc(g.name)}</td><td>${esc(g.phone)}</td>
+    <td><code style="font-size:.8rem;color:var(--cyan)">${esc(g.code)}</code></td>
+    <td>+${g.delta}</td><td style="font-size:.8rem;color:var(--muted)">${esc(g.source)}${g.actor ? ' · ' + esc(g.actor) : ''}</td></tr>`).join('') : empty(6);
+  document.getElementById('rep-fulfilled').innerHTML = done.length ? done.map(g => `
+    <tr><td style="white-space:nowrap">${_fmtTime(g.at)}</td><td>${esc(g.name)}</td><td>${esc(g.phone)}</td>
+    <td><code style="font-size:.8rem;color:var(--cyan)">${esc(g.code)}</code></td>
+    <td>${esc(g.prize)}</td><td style="font-size:.8rem;color:var(--muted)">${esc(g.by)}</td></tr>`).join('') : empty(6);
+  document.getElementById('rep-spun').innerHTML = spun.length ? spun.map(g => `
+    <tr><td style="white-space:nowrap">${_fmtTime(g.last_at)}</td><td>${esc(g.name)}</td><td>${esc(g.phone)}</td>
+    <td><code style="font-size:.8rem;color:var(--cyan)">${esc(g.code)}</code></td><td>${g.spins}</td></tr>`).join('') : empty(5);
+}
+
+function exportReport() {
+  if (!reportData) { showToast('Эхлээд "Харах" товч дарна уу', 'error'); return; }
+  const fmt = (iso) => iso ? formatWonAt(iso) : '';
+  const grants = [['Цаг','Нэр','Утас','Код','Эрх','Эх сурвалж','Хэн']].concat(
+    (reportData.grants || []).map(g => [fmt(g.at), g.name || '', g.phone || '', g.code || '', g.delta, g.source || '', g.actor || '']));
+  const done = [['Цаг','Нэр','Утас','Код','Шагнал','Хэн олгосон']].concat(
+    (reportData.fulfilled || []).map(g => [fmt(g.at), g.name || '', g.phone || '', g.code || '', g.prize || '', g.by || '']));
+  const spun = [['Сүүлд','Нэр','Утас','Код','Эргэлтийн тоо']].concat(
+    (reportData.spun || []).map(g => [fmt(g.last_at), g.name || '', g.phone || '', g.code || '', g.spins]));
+  const stamp = new Date().toISOString().slice(0, 10);
+
+  if (window.XLSX) {
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(grants), 'Эрх олгосон');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(done), 'Хонжвор олгосон');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(spun), 'Эргүүлсэн');
+    XLSX.writeFile(wb, `woowpay-report-${stamp}.xlsx`);
+    return;
+  }
+  const toCsv = (rows) => rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+  const csv = ['Эрх олгосон', toCsv(grants), '', 'Хонжвор олгосон', toCsv(done), '', 'Эргүүлсэн', toCsv(spun)].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' }));
+  a.download = `woowpay-report-${stamp}.csv`;
+  a.click();
+}
 
 function editClient(id) {
   const c = allClients.find(x => x.id === id);
@@ -2003,7 +2160,7 @@ async function deletePrize(id, label) {
 // ══════════════════════════════════════════════════════════════
 //  CSV/XLSX IMPORT / EXPORT (clients) — uses SheetJS (window.XLSX)
 // ══════════════════════════════════════════════════════════════
-const EXPORT_HEADERS = ['Нэр','Утас','Код','Харилцагч ID','Төрөл','Эргэлт','Ашигласан','Идэвхтэй','Хонжвор','Олгосон эсэх','Тэмдэглэл'];
+const EXPORT_HEADERS = ['Нэр','Утас','Код','Харилцагч ID','Төрөл','Эргэлт','Ашигласан','Идэвхтэй','Хонжвор','Олгосон эсэх','Тэмдэглэл','Эрх олгосон огноо'];
 
 /** One row per spin (same expansion as the on-screen table) — a
     client who spun 3 times exports as 3 rows, each with that spin's
@@ -2021,7 +2178,8 @@ function buildExportRows() {
       c.enabled ? 'тийм' : 'үгүй',
       prize ? prize.label : '',
       prize ? (prize.fulfilled ? 'тийм' : 'үгүй') : '',
-      c.notes || ''
+      c.notes || '',
+      c.last_grant_at ? formatWonAt(c.last_grant_at) : ''
     ]);
   });
   return rows;
