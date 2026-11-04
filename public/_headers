@@ -1,0 +1,6 @@
+/sugalaa
+  Cache-Control: public, max-age=0, must-revalidate
+/sugalaa/
+  Cache-Control: public, max-age=0, must-revalidate
+/sugalaa/assets/*
+  Cache-Control: public, max-age=31536000, immutable
