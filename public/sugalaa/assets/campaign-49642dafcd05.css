@@ -203,3 +203,37 @@ body{background:var(--paper)}
 .certified{padding:8px 12px;border:1px solid #d6b76e66;border-radius:100px;background:#ddc3840a;font-weight:700;font-size:13px}
 @media(max-width:700px){.certified{font-size:10px;padding:8px 10px}}
 @media(max-width:700px){.navlinks.is-open{background:#10183f;border-bottom-color:#dfc78644}}
+
+/* Continuous, product-aligned gold glints and festive trees. */
+.gold-card .gold-visual{overflow:visible}
+.gold-render{position:relative;display:block;flex:none;width:min(100%,248px);aspect-ratio:4/5;transform:scale(1.08);transition:transform .25s;pointer-events:none}
+.gold-card .gold-visual .gold-render img{width:100%;height:100%;object-fit:contain;transform:none;filter:drop-shadow(0 12px 9px #61461a19)}
+.gold-visual:hover .gold-render{transform:translateY(-4px) scale(1.1)}
+.gold-shine{position:absolute;inset:0;width:100%;height:100%;overflow:visible;stroke:none;fill:none;pointer-events:none}
+.gold-aura{opacity:.3;filter:blur(9px);animation:goldGlow 4.8s ease-in-out infinite;animation-delay:var(--shine-delay,0s)}
+.gold-sheen{opacity:.3;filter:blur(1px);animation:goldSheen 4.8s ease-in-out infinite;animation-delay:var(--shine-delay,0s)}
+.gold-glint{opacity:.9;filter:drop-shadow(0 0 4px #ffe79b);animation:goldGlint 4.8s ease-in-out infinite;animation-delay:var(--shine-delay,0s);transform-origin:-17px -20px}
+.gold-glint-small{opacity:.6;animation:goldGlow 3.7s ease-in-out infinite;animation-delay:var(--shine-delay,0s)}
+@keyframes goldGlow{0%,100%{opacity:.25}50%{opacity:.65}}
+@keyframes goldGlint{0%,100%{opacity:.7;transform:scale(.8) rotate(-7deg)}50%{opacity:1;transform:scale(1.15) rotate(7deg)}}
+@keyframes goldSheen{0%,100%{opacity:.15;transform:translateY(-10px) rotate(-38deg) scaleX(.65)}50%{opacity:.6;transform:translateY(7px) rotate(-38deg) scaleX(1)}}
+.dialog-product-stage{height:250px;background:radial-gradient(ellipse,#fffaf0,#efe4cd);border-radius:18px;margin-bottom:22px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.dialog-product-stage[hidden]{display:none}
+.dialog-gold-render{position:relative;height:100%;aspect-ratio:4/5}
+.dialog-gold-render .dialog-product-image{height:100%;width:100%;margin:0;background:none;border-radius:0;object-fit:contain}
+#dialog-shine-slot{position:absolute;inset:0;pointer-events:none}
+.gold-dialog .modal-kicker{font-size:10px;letter-spacing:.9px}.gold-dialog .modal-copy{color:#765c2b}
+.hero-christmas-tree{position:absolute;right:-40px;bottom:6px;width:225px;height:338px;z-index:0;stroke:none;filter:drop-shadow(0 12px 16px #07133155)}
+.hero-art .super-owl{z-index:2}.hero-art .hero-gift{z-index:3}
+.tree-lights{filter:drop-shadow(0 0 3px #ffdb70);animation:treeGlow 5s ease-in-out infinite}
+@keyframes treeGlow{0%,100%{opacity:.65}50%{opacity:1}}
+.how-section{overflow:hidden}.how-layout{position:relative;z-index:1}.how-christmas-tree{position:absolute;left:calc(50% - 190px);bottom:-9px;width:155px;height:233px;stroke:none;opacity:.5;pointer-events:none}
+.cta-christmas-tree{position:absolute;right:23%;bottom:-15px;width:135px;height:203px;stroke:none;opacity:.5;pointer-events:none}.final-cta .cta-crystal{right:38%;opacity:.1}
+@media(max-width:1000px){.gold-render{width:min(100%,192px)}.hero-christmas-tree{right:-23px;width:165px;height:248px}.how-christmas-tree{left:calc(50% - 150px);width:125px;height:188px}.cta-christmas-tree{right:24%;opacity:.25}}
+@media(max-width:700px){.gold-render{width:100%;transform:scale(1.15)}.gold-visual:hover .gold-render{transform:scale(1.15)}.gold-card .gold-visual .gold-render img{transform:none}.hero-christmas-tree{right:-12px;bottom:0;width:137px;height:206px}.how-christmas-tree{left:auto;right:4px;bottom:auto;top:12px;width:110px;height:165px;opacity:.25}.cta-christmas-tree{width:112px;height:168px;right:-9px;bottom:39px;opacity:.23}.dialog-product-stage{height:220px}.final-cta .cta-crystal{right:33%}}
+@media(prefers-reduced-motion:reduce){.gold-aura,.gold-sheen,.gold-glint,.gold-glint-small,.tree-lights{animation:none!important}.gold-render{transition:none}.gold-visual:hover .gold-render{transform:scale(1.08)}}
+
+.gold-shine{z-index:4}.gold-glint{filter:drop-shadow(0 0 5px #ffe79b)}
+.hero-christmas-tree{z-index:3;right:-12px;width:185px;height:278px;bottom:5px}.hero-art .super-owl{left:47%}.hero-art .gift-two{z-index:4}
+@media(max-width:1000px){.hero-christmas-tree{width:145px;height:218px;right:-8px}}
+@media(max-width:700px){.hero-christmas-tree{width:125px;height:188px;right:-6px;bottom:5px}.hero-art .super-owl{width:310px;left:43%}.hero-art .gift-one{left:0}}
