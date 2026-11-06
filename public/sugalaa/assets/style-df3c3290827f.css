@@ -114,13 +114,11 @@
 .how-section{background:#f0f3f1}.final-cta{background:radial-gradient(ellipse at 70% 20%,#709bc1,transparent 80%),#315b8a;color:#fff3d7}.footer{background:#2c527e;color:#e0e9f4}.footer-bottom{border-color:#ffffff2b}
 @media(max-width:760px){.nav{height:82px}.navlinks{top:82px;background:#2d5686}.menu-toggle{background:#ffffff0b;border-color:#ffffff55}.brand .brand-hat{width:49px;left:-7px;top:-25px}.hero{background:radial-gradient(ellipse at 90% 52%,#93b0d0aa,transparent 56%),linear-gradient(130deg,#315f96,#5885b3)}.hero-art img{mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}.mobile-cta{background:#2e5789f5;border-top-color:#ffffff44}.mobile-cta .entries-button{border-color:#e6d5a880;color:#fff0cb}.launch-number{color:#fff}.day-card .launch-number{color:#342a20}}
 
-.page-hidden *,.page-hidden *::before,.page-hidden *::after{animation-play-state:paused!important}
-
 /* Festive lettering: crisp foil highlights with a slow, non-flashing sheen. */
 .hero h1{position:relative;padding-top:.16em}
 .hero h1 .headline-super{display:inline-block;position:relative;color:#fffaf0;text-shadow:0 2px 0 #bccbd91a,0 0 26px #d9e8ff18}
-.headline-hat{position:absolute;width:1.12em;height:.94em;left:-.19em;top:-.46em;transform:rotate(-15deg);filter:drop-shadow(0 5px 5px #0005);pointer-events:none;overflow:visible}
-.hero h1 .headline-gold{display:inline-block;position:relative;color:#f2d68e;background:linear-gradient(110deg,#b87c29 0%,#eac573 18%,#fff4c8 32%,#d99c39 44%,#fff9dc 49%,#fffdf3 51%,#edc56c 57%,#ba812f 73%,#ffe6a3 88%,#b87c29 100%);background-size:250% 100%;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 0 #845317) drop-shadow(0 0 13px #f4bd4e45);animation:headline-foil 7s linear infinite}
+.headline-hat{position:absolute;width:1.12em;height:auto;left:auto;right:-.22em;top:-.47em;transform:rotate(8deg);filter:drop-shadow(0 5px 5px #0005);pointer-events:none;overflow:visible}
+.hero h1 .headline-gold{display:inline-block;position:relative;padding-right:.16em;margin-right:-.16em;overflow:visible;color:#f2d68e;background:linear-gradient(110deg,#b87c29 0%,#eac573 18%,#fff4c8 32%,#d99c39 44%,#fff9dc 49%,#fffdf3 51%,#edc56c 57%,#ba812f 73%,#ffe6a3 88%,#b87c29 100%);background-size:250% 100%;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 0 #845317) drop-shadow(0 0 13px #f4bd4e45);animation:headline-foil 7s linear infinite}
 .headline-glint{position:absolute;width:.24em;height:.24em;pointer-events:none;background:radial-gradient(ellipse,#fffef0 0%,#fff5c6 10%,#ffdc8866 30%,transparent 66%);filter:drop-shadow(0 0 4px #ffd77c);animation:headline-twinkle 4.8s ease-in-out infinite;opacity:.65}
 .headline-glint::before,.headline-glint::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent,#fffbe6,transparent);clip-path:polygon(50% 0,59% 41%,100% 50%,59% 59%,50% 100%,41% 59%,0 50%,41% 41%)}
 .headline-glint::after{transform:rotate(45deg) scale(.6)}
@@ -128,3 +126,5 @@
 @keyframes headline-foil{from{background-position:100% 50%}to{background-position:-150% 50%}}
 @keyframes headline-twinkle{0%,100%{opacity:.3;transform:scale(.65)}50%{opacity:1;transform:scale(1.1)}}
 @media(prefers-reduced-motion:reduce){.hero h1 .headline-gold{animation:none;background-position:40% 50%}.headline-glint{animation:none;opacity:.65}}
+
+.page-hidden *,.page-hidden *::before,.page-hidden *::after{animation-play-state:paused!important}
