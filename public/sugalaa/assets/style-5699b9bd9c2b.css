@@ -99,3 +99,16 @@
 @media(prefers-reduced-motion:reduce){.winter-snow{display:none}.winter-stars i,.tree-lights i{opacity:.6}.ornament-progress{transition:none}}
 
 .page-hidden *,.page-hidden *::before,.page-hidden *::after{animation-play-state:paused!important}
+
+/* Festive lettering: crisp foil highlights with a slow, non-flashing sheen. */
+.hero h1{position:relative;padding-top:.16em}
+.hero h1 .headline-super{display:inline-block;position:relative;color:#fffaf0;text-shadow:0 2px 0 #bccbd91a,0 0 26px #d9e8ff18}
+.headline-hat{position:absolute;width:1.12em;height:.94em;left:-.19em;top:-.46em;transform:rotate(-15deg);filter:drop-shadow(0 5px 5px #0005);pointer-events:none;overflow:visible}
+.hero h1 .headline-gold{display:inline-block;position:relative;color:#f2d68e;background:linear-gradient(110deg,#b87c29 0%,#eac573 18%,#fff4c8 32%,#d99c39 44%,#fff9dc 49%,#fffdf3 51%,#edc56c 57%,#ba812f 73%,#ffe6a3 88%,#b87c29 100%);background-size:250% 100%;background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 2px 0 #845317) drop-shadow(0 0 13px #f4bd4e45);animation:headline-foil 7s linear infinite}
+.headline-glint{position:absolute;width:.24em;height:.24em;pointer-events:none;background:radial-gradient(ellipse,#fffef0 0%,#fff5c6 10%,#ffdc8866 30%,transparent 66%);filter:drop-shadow(0 0 4px #ffd77c);animation:headline-twinkle 4.8s ease-in-out infinite;opacity:.65}
+.headline-glint::before,.headline-glint::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent,#fffbe6,transparent);clip-path:polygon(50% 0,59% 41%,100% 50%,59% 59%,50% 100%,41% 59%,0 50%,41% 41%)}
+.headline-glint::after{transform:rotate(45deg) scale(.6)}
+.glint-one{left:13%;top:18%}.glint-two{left:58%;top:64%;animation-delay:-1.6s;width:.18em;height:.18em}.glint-three{right:5%;top:12%;animation-delay:-3.2s}
+@keyframes headline-foil{from{background-position:100% 50%}to{background-position:-150% 50%}}
+@keyframes headline-twinkle{0%,100%{opacity:.3;transform:scale(.65)}50%{opacity:1;transform:scale(1.1)}}
+@media(prefers-reduced-motion:reduce){.hero h1 .headline-gold{animation:none;background-position:40% 50%}.headline-glint{animation:none;opacity:.65}}
