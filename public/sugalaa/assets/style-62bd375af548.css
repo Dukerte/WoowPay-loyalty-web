@@ -98,6 +98,22 @@
 @media(max-width:360px){.launch-countdown{padding-inline:12px}.launch-clock{gap:9px}.launch-number{font-size:28px}.launch-label{font-size:6px;letter-spacing:.5px}.launch-heading h2{font-size:18px}}
 @media(prefers-reduced-motion:reduce){.winter-snow{display:none}.winter-stars i,.tree-lights i{opacity:.6}.ornament-progress{transition:none}}
 
+/* Brighter winter-blue lighting, following the user's November 6 revision. */
+:root{--night:#2c578a;--night-soft:#275284;--cream:#faf8f2}
+.site-header{background:#2d5686;border-bottom-color:#ffffff26}.nav{height:88px}.navlinks{color:#edf3fa}.nav-entries{background:#ffffff0b;color:#fff0cc;border-color:#ead49f66}
+.brand.holiday-brand{position:relative;margin-top:7px}.brand .brand-hat{position:absolute;left:-8px;top:-28px;width:55px;height:auto;max-width:none;pointer-events:none;transform:rotate(-8deg);filter:drop-shadow(0 2px 2px #12345a33)}
+.hero{background:radial-gradient(ellipse at 88% 22%,#88aace99,transparent 52%),linear-gradient(120deg,#2f5d95,#527eaf 80%);color:#fff}
+.hero-art{mask-image:linear-gradient(180deg,transparent,#000 5%,#000 96%,transparent);-webkit-mask-image:linear-gradient(180deg,transparent,#000 5%,#000 96%,transparent)}
+.hero-art img{mask-image:linear-gradient(90deg,transparent,#000 8%,#000 94%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 94%,transparent)}
+.hero h1 span{color:#ffe2a3;text-shadow:0 2px 22px #15385b20}.campaign-tag{color:#fff0cb}.campaign-tag::before{background:#f5dfa8}.campaign-tag time span{color:#e3cfaa}.benefit-list{color:#fff}.benefit-list li+li::before{color:#d2e0f0}.offer-invitation strong{color:#fff0d1}.offer-invitation p{color:#f1f5fc}.text-button{color:#f5f8ff}.winter-effects-control{color:#fff}.winter-effects-control .motion-toggle{background:#345b88b8;color:#fff3d6;border-color:#ffffff66}
+.launch-countdown{background:radial-gradient(ellipse at 70% 100%,#dce8f2,transparent 70%),linear-gradient(130deg,#fffbf0,#eff4f7 60%,#e6edf2);border-color:#fff8dd;box-shadow:0 20px 45px #133b6829,inset 0 1px #fff}
+.launch-countdown::before{border-color:#a0b3bd44}.countdown-star{color:#ab7d32;text-shadow:none}.launch-heading h2{color:#244164;font-weight:600}.draw-date{color:#526b82;background:#ffffff88;border-color:#c3cfd8}.draw-date b{color:#2d4b6d}.draw-date>span{color:#9a824c}
+.launch-card::before{background:linear-gradient(transparent,#b2975f)}
+.launch-card-inner{background:radial-gradient(ellipse at 30% 14%,#c9e6ff66,transparent 45%),radial-gradient(ellipse at 75% 85%,#6598cb66,transparent 55%),linear-gradient(155deg,#5487b6,#2b5784 55%,#4073a0);border-color:#93b4cc;box-shadow:inset 2px 2px 5px #e0f4ff55,inset -5px -6px 12px #173d6466,0 13px 22px #21436422}
+.launch-label{color:#e6f0ff}.day-card .launch-card-inner{box-shadow:inset 3px 3px 7px #fff6d770,inset -6px -6px 14px #70532044,0 13px 25px #ae884322}.ornament-track{stroke:#829ba844}.ornament-progress{stroke:#b08b3c;filter:drop-shadow(0 0 2px #dabd7866)}.countdown-rule{background:linear-gradient(90deg,transparent,#b3975c88)}.winter-crystal{color:#967438}.launch-results{color:#2d527d}.countdown-atmosphere span{background:#b8cdda33}
+.how-section{background:#f0f3f1}.final-cta{background:radial-gradient(ellipse at 70% 20%,#709bc1,transparent 80%),#315b8a;color:#fff3d7}.footer{background:#2c527e;color:#e0e9f4}.footer-bottom{border-color:#ffffff2b}
+@media(max-width:760px){.nav{height:82px}.navlinks{top:82px;background:#2d5686}.menu-toggle{background:#ffffff0b;border-color:#ffffff55}.brand .brand-hat{width:49px;left:-7px;top:-25px}.hero{background:radial-gradient(ellipse at 90% 52%,#93b0d0aa,transparent 56%),linear-gradient(130deg,#315f96,#5885b3)}.hero-art img{mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent);-webkit-mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}.mobile-cta{background:#2e5789f5;border-top-color:#ffffff44}.mobile-cta .entries-button{border-color:#e6d5a880;color:#fff0cb}.launch-number{color:#fff}.day-card .launch-number{color:#342a20}}
+
 .page-hidden *,.page-hidden *::before,.page-hidden *::after{animation-play-state:paused!important}
 
 /* Festive lettering: crisp foil highlights with a slow, non-flashing sheen. */
