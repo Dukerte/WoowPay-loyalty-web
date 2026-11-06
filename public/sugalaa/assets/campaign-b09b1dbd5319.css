@@ -13,7 +13,7 @@
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
 
 .owl{height:auto}.product-art{width:100%;height:100%;stroke:none;stroke-width:1;overflow:visible}.prize-card[data-category="loan"] .prize-visual,.prize-card:has([data-prize="shopping"]) .prize-visual{background:linear-gradient(135deg,#f7f8ff,#fff);margin:14px 14px 0;border-radius:16px}.mini-voucher{max-width:250px}.skip:not(:focus){transform:translateY(-200px)}
-@media(min-width:1001px){.prize-grid:not(:has(.prize-card[hidden])) .prize-card:nth-last-child(-n+2){grid-column:span 2}}
+@media(min-width:1001px){}
 @media(max-width:700px){.hero h1{font-size:clamp(42px,11.7vw,65px);letter-spacing:-2px}.hero-actions .button{font-size:12px;padding:13px 14px;gap:8px}.hero-actions .outline{border:0;padding-inline:5px}.hero-art{height:320px}.owl{width:275px}.orbit{width:270px;height:270px}.hero-ticket{width:130px}.hero-ticket small{letter-spacing:.7px}.hero-copy>p{font-size:13px}.how-intro h2{max-width:340px}}
 
 /* Celebration edition */
@@ -59,3 +59,23 @@ html.motion-paused *,html.motion-paused *::before,html.motion-paused *::after{an
 @media(max-width:700px){.launch-wrap{padding-top:15px;padding-bottom:30px}.launch-countdown{padding:21px 15px 18px;border-radius:18px}.launch-heading{flex-direction:column;gap:8px;margin-bottom:20px}.launch-heading h2{font-size:20px;gap:7px}.launch-spark{font-size:19px}.launch-heading time{font-size:11px;letter-spacing:.5px}.launch-heading time span{padding-inline:8px}.launch-clock{gap:7px}.launch-card{clip-path:polygon(9px 0,100% 0,100% calc(100% - 9px),calc(100% - 9px) 100%,0 100%,0 9px)}.launch-card-inner{clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px);padding:17px 3px 19px;min-height:101px}.launch-number{font-size:clamp(30px,9.8vw,48px);letter-spacing:-1.5px}.launch-label{font-size:7px;letter-spacing:.8px;margin-top:11px}.launch-meter{bottom:8px;left:20%;right:20%}}
 
 .messenger-mark{width:21px;height:21px;fill:currentColor;stroke:none;vertical-align:middle;flex-shrink:0}.messenger-mark[hidden]{display:none}.messenger-link .messenger-mark{width:18px;height:18px;margin-right:3px;vertical-align:-4px}.messenger-link{font-weight:600}.button .messenger-mark{width:24px;height:24px}
+
+/* Six FineGold holiday prizes: three per row, two on phones. */
+.prize-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+.prize-grid>.prize-card,.prize-grid>.prize-card.featured,.prize-grid>.prize-card.gift-feature{grid-column:span 3}
+.prize-grid>.gold-card{grid-column:span 2;background:var(--gold-tone);border-color:transparent}
+.gold-card .prize-topline{padding:18px 18px 0;gap:8px}
+.gold-card .label{font-size:9px;letter-spacing:.8px;color:#344c43}
+.gold-card .gold-visual{display:flex;width:100%;height:300px;padding:0 22px;border:0;border-radius:0;background:transparent;cursor:pointer}
+.gold-card .gold-visual img{object-fit:contain;mix-blend-mode:normal;transition:transform .25s}
+.gold-visual:hover img{transform:translateY(-4px) rotate(-2deg)}
+.gold-card .card-content{padding:12px 20px 22px;align-items:center}
+.gold-card .card-content h3{font-size:18px;line-height:1.3}
+.gold-card .card-content p{font-size:12px;color:#43584f;letter-spacing:.3px}
+.gold-card button:focus-visible{outline:3px solid #3146ac;outline-offset:-3px}
+.dialog-product-image{display:block;width:100%;height:240px;object-fit:contain;margin:0 auto 18px;background:#f4f4ee;border-radius:18px}
+.dialog-product-image[hidden]{display:none}
+.gold-dialog{max-height:calc(100dvh - 32px);overflow:auto}
+@media(max-width:1000px){.gold-card .gold-visual{height:250px;padding:0 12px}.gold-card .label{font-size:8px;letter-spacing:0}.gold-card .prize-topline{padding:14px 12px 0}.gold-card .card-content{padding:10px 14px 18px}.gold-card .card-content h3{font-size:15px}}
+@media(max-width:700px){.prize-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.prize-grid>.prize-card,.prize-grid>.gold-card{grid-column:span 1}.prize-grid>.prize-card.featured,.prize-grid>.prize-card.gift-feature{grid-column:span 2}.gold-card .prize-topline{justify-content:flex-end;padding:12px 12px 0}.gold-card .prize-topline .label{display:none}.gold-card .gold-visual{height:auto;aspect-ratio:4/5;padding:0 6px}.gold-card .card-content{padding:8px 12px 16px;display:block}.gold-card .card-content h3{font-size:14px;min-height:2.6em}.gold-card .card-content p{font-size:11px}.gold-card .detail-button{display:none}.gold-card .gold-visual{min-height:44px}.dialog-product-image{height:200px}}
+@media(prefers-reduced-motion:reduce){.gold-card .gold-visual img{transition:none}.gold-visual:hover img{transform:none}}
